@@ -1,0 +1,64 @@
+## 1. TECH STACK & RUNTIME ACCURACY
+
+- **Backend:** FastAPI + SQLAlchemy SYNC. **CẤM** sử dụng các từ khóa `async` / `await` trong database operations, repositories, hoặc services. Mọi hàm truy vấn DB phải viết dạng synchronous thuần túy.
+- **Frontend:** React (v18+) + Vite + TypeScript. Thiết kế phân lớp nghiêm ngặt: Page -> Component -> Hook/ViewModel -> Service -> Repository/API.
+- **Database:** PostgreSQL. Sử dụng UUID làm Primary Key (`id` kiểu UUID) cho toàn bộ các bảng nghiệp vụ. Kiểu dữ liệu thời gian bắt buộc là `TIMESTAMPTZ`.
+- **Environment Policy:** **CẤM HARDCODE** bất kỳ giá trị cấu hình nào (Database URL, API Base URL, JWT Secret, Local IP, Domain, CORS origins) vào source code. Luôn sử dụng `import.meta.env.VITE_...` (Frontend) hoặc `settings.DATABASE_URL` (Backend).
+
+## 2. STRICT DATA ISOLATION (ANTI-LEAK)
+
+- Mọi bảng nghiệp vụ (`notes`, `subtasks`, `folders`, `tags`, `assignees`) bắt buộc phải có trường `user_id: UUID` để cô lập dữ liệu.
+- **Ràng buộc truy vấn tuyệt đối:** Mọi câu lệnh SQL (SELECT, UPDATE, DELETE) hoặc hàm CRUD từ API bắt buộc phải chứa điều kiện lọc `WHERE user_id = current_user.id`. **CẤM** truy vấn thực thể chỉ bằng mẫu `id = :id` mà không đi kèm `user_id`.
+
+## 3. BUSINESS RULES & TRANSACTION CONSTRAINT
+
+- **Note Atomic Transaction:** Khi Tạo (`POST`) hoặc Cập nhật (`PUT`) một Note, toàn bộ thao tác xử lý Note, Tag phụ속 (`note_tags`), và danh sách Sub-tasks đi kèm bắt buộc phải chạy trong **CÙNG MỘT TRANSACTION** (`db.commit()`). Nếu bất kỳ phần nào lỗi, bắt buộc phải `db.rollback()` toàn bộ.
+- **PUT Note Behavior:** Khi cập nhật một Note:
+  - Sub-task có `id`: Tiến hành `UPDATE`.
+  - Sub-task không có `id`: Tiến hành `CREATE`.
+  - Sub-task cũ đã có trong DB nhưng thiếu trong payload: Tiến hành xóa mềm (`soft delete`).
+- **Soft Delete Policy:** **CẤM** sử dụng lệnh `DELETE` vật lý từ UI (trừ bảng `refresh_tokens`). Tất cả các bảng nghiệp vụ sử dụng cơ chế xóa mềm qua trường `deleted_at: TIMESTAMPTZ` hoặc `is_deleted: Boolean`. Mọi câu lệnh Query mặc định phải tự động lọc bỏ bản ghi đã xóa mềm (`deleted_at IS NOT NULL`).
+- **Folder Tree Rules:**
+  - Không cho phép xóa folder hệ thống `Inbox`. Khi xóa một Folder con đang chứa Note active, tự động chuyển các Note đó về `Inbox`, sau đó mới xóa mềm folder.
+  - Nếu một Folder có Folder con khác đang active (`deleted_at IS NULL`), **BLOCK** không cho xóa và trả về mã lỗi `FOLDER_HAS_ACTIVE_CHILDREN`.
+- **Assignee Rules:** Giao diện quản lý Assignee là danh bạ nội bộ, **không phải User hệ thống** (Assignee không có quyền đăng nhập). Nếu Assignee đang được gắn vào Note/Sub-task cũ, không được phép xóa mềm mà phải chuyển trạng thái `is_active = FALSE` (Deactivate). Assignee inactive không được hiển thị trong dropdown tạo mới nhưng vẫn phải hiển thị đúng tên kèm badge ở Note cũ.
+
+## 4. DATETIME & TIMEZONE RULES
+
+- **Database:** Lưu trữ nhất quán dưới dạng UTC thông qua kiểu dữ liệu `TIMESTAMPTZ`.
+- **API Boundary:** Định dạng nhận và trả dữ liệu qua API bắt buộc tuân theo chuẩn ISO 8601 kèm múi giờ (Ví dụ: `2026-06-02T14:30:00+07:00`).
+- **Frontend Display:** Frontend chịu trách nhiệm parse chuỗi ISO từ API và hiển thị duy nhất theo định dạng giờ Việt Nam (`Asia/Ho_Chi_Minh`): `dd/mm/yyyy hh:mm`.
+
+## 5. SEARCH & QUICK FILTER LIMITATION
+
+- **CẤM** cài đặt PostgreSQL Full-text search (`tsvector`), GIN Index hoặc các thư viện tìm kiếm bên thứ ba (Elasticsearch, AI search) trong phase MVP này.
+- **Cơ chế tìm kiếm:** Sử dụng trường `search_text` dạng text thuần đã được normalize không dấu (ví dụ: chuyển "Kiểm tra" thành "kiem tra") trên DB. Thực hiện tìm kiếm bằng toán tử `ILIKE` trên trường `search_text` này.
+- Các Quick Filter bắt buộc phải định nghĩa đúng logic thời gian thực tế:
+  - `today`: `deadline_at` thuộc ngày hiện tại tính theo giờ Việt Nam.
+  - `overdue`: `deadline_at < now` và trạng thái note khác `DONE`.
+
+## 6. BACKEND CODESPACE LAYERS (FastAPI)
+
+Khi viết mã nguồn Backend, bắt buộc phải tổ chức theo đúng cấu trúc thư mục dạng Module và tuân thủ trách nhiệm từng lớp:
+
+- `Router`: Chỉ nhận request, validate Pydantic, inject `current_user` qua Dependency, gọi Service và trả response DTO. **KHÔNG** viết logic nghiệp vụ hay gọi DB tại đây.
+- `Schema`: Định nghĩa Pydantic models để validate đầu vào/đầu ra.
+- `Service`: Nơi tập trung toàn bộ Business Logic, quản lý ranh giới Transaction (commit/rollback), validation nghiệp vụ (kiểm tra folder thuộc user, assignee còn active hay không).
+- `Repository`: Chỉ chứa câu lệnh SQL/SQLAlchemy sync để thực hiện thao tác CRUD trực tiếp trên DB.
+
+## 7. FRONTEND LAYER RULES (React Vite TS)
+
+- **CẤM** cài đặt Redux hoặc các global state management phức tạp cho phần data CRUD.
+- Sử dụng **TanStack Query (React Query)** để quản lý state bất đồng bộ, caching, loading, error và cơ chế invalidate queries sau khi thực hiện mutations (create/update/delete).
+- Sử dụng React Context duy nhất cho việc quản lý trạng thái Đăng nhập (Auth State / Current User).
+- Form chỉnh sửa ghi chú bắt buộc phải có trạng thái **Dirty State**: hiển thị hộp thoại xác nhận nếu người dùng có thay đổi chưa lưu mà bấm chuyển hướng hoặc tải lại trang.
+
+## 8. BOUNDARY RULES (MVP SCOPE GUARD)
+
+Nếu AI tự ý đề xuất hoặc sinh code liên quan đến các tính năng sau, hãy lập tức chặn lại:
+
+- **KHÔNG** viết code cho hệ thống Notification (Push, Email, SMS).
+- **KHÔNG** viết code cho cơ chế Auto-save phía Frontend. Mọi dữ liệu phải qua tương tác click nút **Lưu** rõ ràng.
+- **KHÔNG** tích hợp PWA, Offline Mode, Service Workers.
+- **KHÔNG** tích hợp WebSocket hoặc các giải pháp Real-time collaboration.
+- **KHÔNG** viết code phân quyền nhiều vai trò (Role-based access control) phức tạp; chỉ tồn tại khái niệm Chủ sở hữu dữ liệu (`user_id`).

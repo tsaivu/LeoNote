@@ -1,0 +1,1 @@
+"""Trash request/response schemas."""

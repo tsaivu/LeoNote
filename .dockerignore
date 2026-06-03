@@ -1,0 +1,15 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+node_modules
+dist
+.env
+.env.*
+!*.env.example
+!*.env.development.example
+!*.env.production.example
+!*.env.test.example
+deploy/backups

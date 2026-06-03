@@ -1,0 +1,1208 @@
+import { FormEvent, KeyboardEvent, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Link, Navigate } from "react-router-dom";
+
+import { useAssignees, useCreateAssignee } from "../../assignees/hooks/useAssignees";
+import { useAuth } from "../../auth/hooks/useAuth";
+import { useCreateFolder, useFolders } from "../../folders/hooks/useFolders";
+import { useCreateTag } from "../../tags/hooks/useTags";
+import { useTags } from "../../tags/hooks/useTags";
+import { useCreateNote, useCreateNoteComment, useDeleteNote, useNoteComments, useNotes, useUpdateNote } from "../hooks/useNotes";
+import type { NoteItem, NotePayload, SubtaskPayload } from "../types/noteTypes";
+
+type NoteFormState = {
+  title: string;
+  content: string;
+  folder_id: string;
+  main_assignee_id: string;
+  assignee_ids: string[];
+  status: string;
+  priority: string;
+  deadline_at: string;
+  tag_names: string[];
+  subtasks: SubtaskPayload[];
+};
+
+const emptyForm: NoteFormState = {
+  title: "",
+  content: "",
+  folder_id: "",
+  main_assignee_id: "",
+  assignee_ids: [],
+  status: "TODO",
+  priority: "MEDIUM",
+  deadline_at: "",
+  tag_names: [],
+  subtasks: [],
+};
+
+type MessageTone = "success" | "danger";
+
+type TimelineItem = {
+  id: string;
+  author: string;
+  text: string;
+  createdAt: string;
+  kind: "comment" | "timeline" | "system";
+};
+
+function toLocalInputValue(value: string | null) {
+  if (!value) {
+    return "";
+  }
+  const date = new Date(value);
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+function fromNote(note: NoteItem): NoteFormState {
+  return {
+    title: note.title,
+    content: note.content ?? "",
+    folder_id: note.folder.id,
+    main_assignee_id: note.main_assignee.id,
+    assignee_ids: (note.assignees?.length ? note.assignees : [note.main_assignee]).map((assignee) => assignee.id),
+    status: note.status,
+    priority: note.priority,
+    deadline_at: toLocalInputValue(note.deadline_at),
+    tag_names: note.tags.map((tag) => tag.name),
+    subtasks: note.subtasks.map((subtask) => ({
+      id: subtask.id,
+      title: subtask.title,
+      assignee_id: subtask.assignee?.id ?? note.main_assignee.id,
+      status: subtask.status,
+      sort_order: subtask.sort_order,
+    })),
+  };
+}
+
+function toPayload(form: NoteFormState, tagIds: string[]): NotePayload {
+  const assigneeIds = Array.from(new Set(form.assignee_ids.length ? form.assignee_ids : [form.main_assignee_id])).filter(Boolean);
+  const mainAssigneeId = assigneeIds[0] ?? form.main_assignee_id;
+  const payload: NotePayload = {
+    title: form.title,
+    content: form.content || null,
+    folder_id: form.folder_id || null,
+    main_assignee_id: mainAssigneeId,
+    assignee_ids: assigneeIds,
+    status: form.status,
+    priority: form.priority,
+    tag_ids: tagIds,
+    subtasks: form.subtasks.map((subtask, index) => ({
+      ...subtask,
+      assignee_id: subtask.assignee_id || mainAssigneeId,
+      sort_order: subtask.sort_order || index + 1,
+    })),
+  };
+  if (form.deadline_at) {
+    payload.deadline_at = new Date(form.deadline_at).toISOString();
+  }
+  return payload;
+}
+
+function statusChipClass(status: string) {
+  if (status === "DONE") {
+    return "chip success";
+  }
+  if (status === "PENDING") {
+    return "chip warning";
+  }
+  return "chip";
+}
+
+function statusLabel(status: string) {
+  if (status === "DOING") {
+    return "In Progress";
+  }
+  if (status === "TODO") {
+    return "To Do";
+  }
+  return status;
+}
+
+function priorityChipClass(priority: string) {
+  if (priority === "HIGH" || priority === "CRITICAL") {
+    return "priority-badge high";
+  }
+  if (priority === "MEDIUM") {
+    return "priority-badge medium";
+  }
+  return "priority-badge low";
+}
+
+function priorityLabel(priority: string) {
+  if (priority === "CRITICAL") {
+    return "High";
+  }
+  return priority.charAt(0) + priority.slice(1).toLowerCase();
+}
+
+function formatDeadline(value: string | null) {
+  if (!value) {
+    return "No deadline";
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Ho_Chi_Minh",
+  }).format(new Date(value));
+}
+
+function getProgress(note: NoteItem) {
+  if (note.status === "DONE") {
+    return 100;
+  }
+  if (note.subtasks.length === 0) {
+    return note.status === "DOING" ? 45 : 10;
+  }
+  const doneCount = note.subtasks.filter((subtask) => subtask.status === "DONE").length;
+  return Math.round((doneCount / note.subtasks.length) * 100);
+}
+
+function getProgressClass(progress: number) {
+  if (progress >= 100) {
+    return "progress-fill done";
+  }
+  if (progress >= 40) {
+    return "progress-fill active";
+  }
+  if (progress >= 20) {
+    return "progress-fill warning";
+  }
+  return "progress-fill danger";
+}
+
+function getAssigneeInitials(note: NoteItem) {
+  const names = [
+    ...(note.assignees?.length ? note.assignees.map((assignee) => assignee.name) : [note.main_assignee.name]),
+    ...note.subtasks.map((subtask) => subtask.assignee.name),
+  ];
+  return Array.from(new Set(names))
+    .slice(0, 3)
+    .map((name) => name.trim().charAt(0).toUpperCase() || "?");
+}
+
+function buildPayloadFromNote(note: NoteItem, patch: Partial<NoteFormState> = {}): NotePayload {
+  const form = { ...fromNote(note), ...patch };
+  return toPayload(
+    form,
+    note.tags.map((tag) => tag.id),
+  );
+}
+
+function formatRelativeTime(value: string) {
+  const diffMs = Date.now() - new Date(value).getTime();
+  const diffMinutes = Math.max(1, Math.round(diffMs / 60_000));
+  if (diffMinutes < 60) {
+    return `${diffMinutes} min ago`;
+  }
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours} hours ago`;
+  }
+  return `${Math.round(diffHours / 24)} days ago`;
+}
+
+export function NotesWorkspacePage() {
+  const { isAuthenticated, user, logout } = useAuth();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeStatus, setActiveStatus] = useState<"TODO" | "DOING" | "DONE">("TODO");
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+  const noteParams = useMemo(() => {
+    const params = new URLSearchParams();
+    if (deferredSearchTerm.trim()) {
+      params.set("q", deferredSearchTerm.trim());
+    }
+    params.set("status", activeStatus);
+    if (activeFolderId) {
+      params.set("folder_id", activeFolderId);
+    }
+    return params;
+  }, [activeFolderId, activeStatus, deferredSearchTerm]);
+  const notesQuery = useNotes(isAuthenticated, noteParams);
+  const foldersQuery = useFolders(isAuthenticated);
+  const assigneesQuery = useAssignees(isAuthenticated);
+  const tagsQuery = useTags(isAuthenticated);
+  const createFolderMutation = useCreateFolder();
+  const createAssigneeMutation = useCreateAssignee();
+  const createTagMutation = useCreateTag();
+  const createNoteMutation = useCreateNote();
+  const updateNoteMutation = useUpdateNote();
+  const deleteNoteMutation = useDeleteNote();
+  const createNoteCommentMutation = useCreateNoteComment();
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [detailNoteId, setDetailNoteId] = useState<string | null>(null);
+  const [detailNoteSnapshot, setDetailNoteSnapshot] = useState<NoteItem | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [form, setForm] = useState<NoteFormState>(emptyForm);
+  const [lastSavedForm, setLastSavedForm] = useState<NoteFormState>(emptyForm);
+  const [message, setMessage] = useState<string | null>(null);
+  const [messageTone, setMessageTone] = useState<MessageTone>("success");
+  const [tagDraft, setTagDraft] = useState("");
+  const [commentDraft, setCommentDraft] = useState("");
+  const [isProjectPickerOpen, setIsProjectPickerOpen] = useState(false);
+  const [isAssigneePickerOpen, setIsAssigneePickerOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newAssigneeName, setNewAssigneeName] = useState("");
+  const [detailSubtaskStatuses, setDetailSubtaskStatuses] = useState<Record<string, string>>({});
+
+  const notes = notesQuery.data ?? [];
+  const selectedNote = useMemo(
+    () => notes.find((note) => note.id === selectedNoteId) ?? null,
+    [notes, selectedNoteId],
+  );
+  const detailNote = useMemo(
+    () => notes.find((note) => note.id === detailNoteId) ?? (detailNoteSnapshot?.id === detailNoteId ? detailNoteSnapshot : null),
+    [detailNoteId, detailNoteSnapshot, notes],
+  );
+  const commentsQuery = useNoteComments(detailNote?.id ?? null, isAuthenticated && Boolean(detailNote));
+  const detailTimeline = useMemo(() => {
+    if (!detailNote) {
+      return [];
+    }
+    const commentItems: TimelineItem[] = (commentsQuery.data ?? []).map((comment) => ({
+      id: comment.id,
+      author: comment.author_name,
+      text: comment.content,
+      createdAt: comment.created_at,
+      kind: comment.kind === "TIMELINE_NOTE" ? "timeline" : "comment",
+    }));
+    const baseItems: TimelineItem[] = [
+      {
+        id: `${detailNote.id}-updated`,
+        author: "System",
+        text: `Task updated with status "${statusLabel(detailNote.status)}".`,
+        createdAt: detailNote.updated_at,
+        kind: "system",
+      },
+      {
+        id: `${detailNote.id}-created`,
+        author: "System",
+        text: "Task was created.",
+        createdAt: detailNote.created_at,
+        kind: "system",
+      },
+    ];
+    return [...commentItems, ...baseItems].sort(
+      (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+    );
+  }, [commentsQuery.data, detailNote]);
+  const isDirty = JSON.stringify(form) !== JSON.stringify(lastSavedForm);
+
+  useEffect(() => {
+    if (!selectedNoteId && !isDirty) {
+      const nextForm = {
+        ...emptyForm,
+        folder_id: foldersQuery.data?.[0]?.id ?? "",
+        main_assignee_id: assigneesQuery.data?.[0]?.id ?? "",
+        assignee_ids: assigneesQuery.data?.[0]?.id ? [assigneesQuery.data[0].id] : [],
+      };
+      setForm(nextForm);
+      setLastSavedForm(nextForm);
+    }
+  }, [assigneesQuery.data, foldersQuery.data, isDirty, selectedNoteId]);
+
+  useEffect(() => {
+    if (!detailNote) {
+      setDetailSubtaskStatuses({});
+      return;
+    }
+    setDetailSubtaskStatuses(
+      Object.fromEntries(detailNote.subtasks.map((subtask) => [subtask.id, subtask.status])),
+    );
+  }, [detailNote?.id]);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  function openNoteDetail(note: NoteItem) {
+    setDetailNoteId(note.id);
+    setDetailNoteSnapshot(note);
+    setCommentDraft("");
+    setMessage(null);
+  }
+
+  function selectNote(note: NoteItem) {
+    if (isDirty && !window.confirm("Discard unsaved changes?")) {
+      return;
+    }
+    const nextForm = fromNote(note);
+    setSelectedNoteId(note.id);
+    setDetailNoteId(null);
+    setDetailNoteSnapshot(null);
+    setForm(nextForm);
+    setLastSavedForm(nextForm);
+    setMessage(null);
+    setMessageTone("success");
+    setIsEditorOpen(true);
+    setTagDraft("");
+  }
+
+  function startNewNote() {
+    if (isDirty && !window.confirm("Discard unsaved changes?")) {
+      return;
+    }
+    const nextForm = {
+      ...emptyForm,
+      folder_id: foldersQuery.data?.[0]?.id ?? "",
+      main_assignee_id: assigneesQuery.data?.[0]?.id ?? "",
+      assignee_ids: assigneesQuery.data?.[0]?.id ? [assigneesQuery.data[0].id] : [],
+    };
+    setSelectedNoteId(null);
+    setDetailNoteId(null);
+    setDetailNoteSnapshot(null);
+    setForm(nextForm);
+    setLastSavedForm(nextForm);
+    setMessage(null);
+    setMessageTone("success");
+    setIsEditorOpen(true);
+    setTagDraft("");
+  }
+
+  async function markDetailComplete() {
+    if (!detailNote) {
+      return;
+    }
+    try {
+      const saved = await updateNoteMutation.mutateAsync({
+        noteId: detailNote.id,
+        payload: buildPayloadFromNote(detailNote, { status: "DONE" }),
+      });
+      setDetailNoteId(saved.id);
+      setDetailNoteSnapshot(saved);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Update failed");
+      setMessageTone("danger");
+    }
+  }
+
+  async function updateDetailStatus(status: string) {
+    if (!detailNote) {
+      return;
+    }
+    try {
+      const saved = await updateNoteMutation.mutateAsync({
+        noteId: detailNote.id,
+        payload: buildPayloadFromNote(detailNote, { status }),
+      });
+      setDetailNoteId(saved.id);
+      setDetailNoteSnapshot(saved);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Update failed");
+      setMessageTone("danger");
+    }
+  }
+
+  function hasDetailSubtaskChanges() {
+    if (!detailNote) {
+      return false;
+    }
+    return detailNote.subtasks.some((subtask) => detailSubtaskStatuses[subtask.id] && detailSubtaskStatuses[subtask.id] !== subtask.status);
+  }
+
+  async function saveDetailSubtasks() {
+    if (!detailNote || !hasDetailSubtaskChanges()) {
+      return;
+    }
+    try {
+      const saved = await updateNoteMutation.mutateAsync({
+        noteId: detailNote.id,
+        payload: buildPayloadFromNote(detailNote, {
+          subtasks: fromNote(detailNote).subtasks.map((subtask) => ({
+            ...subtask,
+            status: detailSubtaskStatuses[subtask.id ?? ""] ?? subtask.status,
+          })),
+        }),
+      });
+      setDetailNoteId(saved.id);
+      setDetailNoteSnapshot(saved);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Update failed");
+      setMessageTone("danger");
+    }
+  }
+
+  async function submitDetailComment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!detailNote) {
+      return;
+    }
+    const text = commentDraft.trim();
+    if (!text) {
+      return;
+    }
+    try {
+      await createNoteCommentMutation.mutateAsync({
+        noteId: detailNote.id,
+        payload: {
+          content: text,
+          kind: "COMMENT",
+        },
+      });
+      setCommentDraft("");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Save comment failed");
+      setMessageTone("danger");
+    }
+  }
+
+  function closeEditor() {
+    if (isDirty && !window.confirm("Discard unsaved changes?")) {
+      return;
+    }
+    setIsEditorOpen(false);
+    setMessage(null);
+    setMessageTone("success");
+    setTagDraft("");
+  }
+
+  function normalizeTagName(value: string) {
+    return value.trim().replace(/\s+/g, " ");
+  }
+
+  function addTagName(rawValue: string) {
+    const name = normalizeTagName(rawValue);
+    if (!name) {
+      return;
+    }
+    setForm((current) => {
+      const exists = current.tag_names.some((tagName) => tagName.toLowerCase() === name.toLowerCase());
+      return exists ? current : { ...current, tag_names: [...current.tag_names, name] };
+    });
+    setTagDraft("");
+  }
+
+  function selectedProjectName() {
+    return (foldersQuery.data ?? []).find((folder) => folder.id === form.folder_id)?.name ?? "Select project";
+  }
+
+  function selectedAssigneeNames() {
+    const selectedIds = new Set(form.assignee_ids);
+    return (assigneesQuery.data ?? [])
+      .filter((assignee) => selectedIds.has(assignee.id))
+      .map((assignee) => assignee.name);
+  }
+
+  function toggleAssignee(assigneeId: string) {
+    setForm((current) => {
+      const exists = current.assignee_ids.includes(assigneeId);
+      const assigneeIds = exists
+        ? current.assignee_ids.filter((id) => id !== assigneeId)
+        : [...current.assignee_ids, assigneeId];
+      const fallbackId = assigneesQuery.data?.[0]?.id ?? "";
+      const nextMainAssigneeId = assigneeIds[0] ?? fallbackId;
+      return {
+        ...current,
+        assignee_ids: assigneeIds,
+        main_assignee_id: nextMainAssigneeId,
+        subtasks: current.subtasks.map((subtask) => ({
+          ...subtask,
+          assignee_id: subtask.assignee_id || nextMainAssigneeId,
+        })),
+      };
+    });
+  }
+
+  async function createProjectFromPicker() {
+    const name = newProjectName.trim();
+    if (!name) {
+      return;
+    }
+    const folder = await createFolderMutation.mutateAsync({ name });
+    setForm((current) => ({ ...current, folder_id: folder.id }));
+    setNewProjectName("");
+  }
+
+  async function createAssigneeFromPicker() {
+    const name = newAssigneeName.trim();
+    if (!name) {
+      return;
+    }
+    const assignee = await createAssigneeMutation.mutateAsync({ name });
+    setForm((current) => ({
+      ...current,
+      main_assignee_id: current.main_assignee_id || assignee.id,
+      assignee_ids: Array.from(new Set([...current.assignee_ids, assignee.id])),
+    }));
+    setNewAssigneeName("");
+  }
+
+  function handleTagInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter" && event.key !== ",") {
+      return;
+    }
+    event.preventDefault();
+    addTagName(tagDraft);
+  }
+
+  async function resolveTagIds(tagNames: string[]) {
+    const existingTags = tagsQuery.data ?? [];
+    const tagIds: string[] = [];
+    for (const tagName of tagNames) {
+      const existing = existingTags.find((tag) => tag.name.toLowerCase() === tagName.toLowerCase());
+      if (existing) {
+        tagIds.push(existing.id);
+        continue;
+      }
+      const created = await createTagMutation.mutateAsync({ name: tagName });
+      tagIds.push(created.id);
+    }
+    return tagIds;
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage(null);
+    setMessageTone("success");
+    try {
+      const draftTagName = normalizeTagName(tagDraft);
+      const finalTagNames =
+        draftTagName && !form.tag_names.some((tagName) => tagName.toLowerCase() === draftTagName.toLowerCase())
+          ? [...form.tag_names, draftTagName]
+          : form.tag_names;
+      const tagIds = await resolveTagIds(finalTagNames);
+      const payload = toPayload({ ...form, tag_names: finalTagNames }, tagIds);
+      const saved = selectedNoteId
+        ? await updateNoteMutation.mutateAsync({ noteId: selectedNoteId, payload })
+        : await createNoteMutation.mutateAsync(payload);
+      const nextForm = fromNote(saved);
+      setSelectedNoteId(saved.id);
+      setForm(nextForm);
+      setLastSavedForm(nextForm);
+      setMessage("Saved");
+      setMessageTone("success");
+      setIsEditorOpen(false);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Save failed");
+      setMessageTone("danger");
+    }
+  }
+
+  async function deleteSelectedNote() {
+    if (!selectedNoteId || !window.confirm("Delete this note?")) {
+      return;
+    }
+    try {
+      await deleteNoteMutation.mutateAsync(selectedNoteId);
+      const nextForm = {
+        ...emptyForm,
+        folder_id: foldersQuery.data?.[0]?.id ?? "",
+        main_assignee_id: assigneesQuery.data?.[0]?.id ?? "",
+        assignee_ids: assigneesQuery.data?.[0]?.id ? [assigneesQuery.data[0].id] : [],
+      };
+      setSelectedNoteId(null);
+      setForm(nextForm);
+      setLastSavedForm(nextForm);
+      setMessage("Deleted");
+      setMessageTone("success");
+      setIsEditorOpen(false);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Delete failed");
+      setMessageTone("danger");
+    }
+  }
+
+  function updateSubtask(index: number, patch: Partial<SubtaskPayload>) {
+    setForm((current) => ({
+      ...current,
+      subtasks: current.subtasks.map((subtask, subtaskIndex) =>
+        subtaskIndex === index ? { ...subtask, ...patch } : subtask,
+      ),
+    }));
+  }
+
+  return (
+    <main className="taskflow-shell">
+      <aside className="taskflow-sidebar">
+        <div className="taskflow-brand">
+          <span className="taskflow-logo" />
+          <span>TaskFlow</span>
+        </div>
+        <nav className="taskflow-nav" aria-label="TaskFlow navigation">
+          <button className="taskflow-nav-item active" type="button" onClick={startNewNote}>
+            <span className="tf-icon tf-icon-check" />
+            My Tasks
+          </button>
+          <Link className="taskflow-nav-item" to="/settings/folders">
+            <span className="tf-icon tf-icon-folder" />
+            Projects
+          </Link>
+          <Link className="taskflow-nav-item" to="/">
+            <span className="tf-icon tf-icon-calendar" />
+            Calendar
+          </Link>
+          <Link className="taskflow-nav-item" to="/settings/assignees">
+            <span className="tf-icon tf-icon-team" />
+            Team
+          </Link>
+          <Link className="taskflow-nav-item" to="/trash">
+            <span className="tf-icon tf-icon-report" />
+            Reports
+          </Link>
+          <Link className="taskflow-nav-item" to="/settings/tags">
+            <span className="tf-icon tf-icon-settings" />
+            Settings
+          </Link>
+        </nav>
+        <button className="taskflow-user" type="button" onClick={logout} title={`Logout ${user?.username ?? ""}`}>
+          <span className="taskflow-user-avatar">{user?.username?.slice(0, 1).toUpperCase() ?? "U"}</span>
+          <span className="taskflow-user-caret">v</span>
+        </button>
+      </aside>
+
+      <div className="taskflow-main">
+        <section className="taskflow-board">
+          <div className="taskflow-board-header">
+            <label className="taskflow-search" htmlFor="task-search">
+              <span className="search-icon" aria-hidden="true" />
+              <input
+                id="task-search"
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search tasks..."
+              />
+            </label>
+            <div className="taskflow-tabs" role="tablist" aria-label="Task status">
+              <button className={activeStatus === "TODO" ? "active" : ""} type="button" onClick={() => setActiveStatus("TODO")}>
+                To Do
+              </button>
+              <button className={activeStatus === "DOING" ? "active" : ""} type="button" onClick={() => setActiveStatus("DOING")}>
+                In Progress
+              </button>
+              <button className={activeStatus === "DONE" ? "active" : ""} type="button" onClick={() => setActiveStatus("DONE")}>
+                Done
+              </button>
+            </div>
+          </div>
+
+          <div className="project-tabs" role="tablist" aria-label="Project filter">
+            <button className={activeFolderId === null ? "active" : ""} type="button" onClick={() => setActiveFolderId(null)}>
+              All Tasks
+            </button>
+            {(foldersQuery.data ?? []).map((folder) => (
+              <button
+                className={activeFolderId === folder.id ? "active" : ""}
+                key={folder.id}
+                type="button"
+                onClick={() => setActiveFolderId(folder.id)}
+              >
+                {folder.name}
+              </button>
+            ))}
+          </div>
+
+          {notesQuery.isLoading ? <p className="empty-state">Loading notes...</p> : null}
+          {notesQuery.isError ? <p className="empty-state">Failed to load notes.</p> : null}
+          <table className="taskflow-table">
+            <thead>
+              <tr>
+                <th>Task Name</th>
+                <th>Priority</th>
+                <th>Assignee</th>
+                <th>Deadline</th>
+                <th>Progress</th>
+              </tr>
+            </thead>
+            <tbody>
+              {notes.map((note) => {
+                const progress = getProgress(note);
+                return (
+                  <tr
+                    key={note.id}
+                    className={note.id === detailNoteId ? "selected-row" : ""}
+                    onClick={() => openNoteDetail(note)}
+                  >
+                    <td>
+                      <button className="task-name-button" type="button" onClick={() => openNoteDetail(note)}>
+                        {note.title}
+                      </button>
+                    </td>
+                    <td>
+                      <span className={priorityChipClass(note.priority)}>{priorityLabel(note.priority)}</span>
+                    </td>
+                    <td>
+                      <span className="assignee-stack">
+                        {getAssigneeInitials(note).map((initial, index) => (
+                          <span className={`assignee-avatar avatar-${index + 1}`} key={`${note.id}-${initial}-${index}`}>
+                            {initial}
+                          </span>
+                        ))}
+                      </span>
+                    </td>
+                    <td>{formatDeadline(note.deadline_at)}</td>
+                    <td>
+                      <div className="progress-cell">
+                        <span>{progress}%</span>
+                        <span className="progress-track">
+                          <span className={getProgressClass(progress)} style={{ width: `${progress}%` }} />
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {notes.length === 0 ? <p className="empty-state">No active notes.</p> : null}
+          <button className="taskflow-floating-button" type="button" onClick={startNewNote} aria-label="New Task">
+            +
+          </button>
+        </section>
+
+        {detailNote ? (
+          <div className="task-modal-backdrop task-detail-backdrop" role="presentation">
+            <section className="task-detail-modal" role="dialog" aria-modal="true" aria-labelledby="task-detail-title">
+              <div className="task-detail-main">
+                <button
+                  className="task-detail-close"
+                  type="button"
+                  onClick={() => {
+                    setDetailNoteId(null);
+                    setDetailNoteSnapshot(null);
+                  }}
+                  aria-label="Close task detail"
+                >
+                  x
+                </button>
+                <h2 id="task-detail-title">{detailNote.title}</h2>
+                <p className="task-detail-description">
+                  {detailNote.content || "No description has been added for this task yet."}
+                </p>
+
+                <div className="detail-divider" />
+
+                <div className="detail-subtask-header">
+                  <h3>Subtasks</h3>
+                  <div className="detail-subtask-actions">
+                    <span>{getProgress(detailNote)}% Complete</span>
+                    {hasDetailSubtaskChanges() ? (
+                      <button type="button" onClick={saveDetailSubtasks} disabled={updateNoteMutation.isPending}>
+                        Save
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+                <span className="detail-progress-track">
+                  <span className={getProgressClass(getProgress(detailNote))} style={{ width: `${getProgress(detailNote)}%` }} />
+                </span>
+                <div className="detail-subtask-list">
+                  {detailNote.subtasks.length === 0 ? <p className="detail-empty">No subtasks yet.</p> : null}
+                  {detailNote.subtasks.map((subtask) => (
+                    <div className="detail-subtask-row" key={subtask.id}>
+                      <button
+                        className={(detailSubtaskStatuses[subtask.id] ?? subtask.status) === "DONE" ? "detail-check checked" : "detail-check"}
+                        type="button"
+                        onClick={() =>
+                          setDetailSubtaskStatuses((current) => ({
+                            ...current,
+                            [subtask.id]: (current[subtask.id] ?? subtask.status) === "DONE" ? "TODO" : "DONE",
+                          }))
+                        }
+                        aria-label={`Toggle subtask ${subtask.title}`}
+                      >
+                        {(detailSubtaskStatuses[subtask.id] ?? subtask.status) === "DONE" ? "x" : ""}
+                      </button>
+                      <span>{subtask.title}</span>
+                      <span className="detail-comment-icon" aria-hidden="true" />
+                    </div>
+                  ))}
+                </div>
+
+                <form className="detail-comment-form" onSubmit={submitDetailComment}>
+                  <span className="detail-comment-avatar">{user?.username?.slice(0, 1).toUpperCase() ?? "U"}</span>
+                  <input
+                    value={commentDraft}
+                    onChange={(event) => setCommentDraft(event.target.value)}
+                    placeholder="Add a comment or timeline note..."
+                  />
+                  <button type="submit" disabled={createNoteCommentMutation.isPending}>
+                    Post
+                  </button>
+                </form>
+
+                <section className="detail-timeline" aria-label="Timeline and activity log">
+                  <h3>Timeline & Activity Log</h3>
+                  {commentsQuery.isLoading ? <p className="detail-empty">Loading comments...</p> : null}
+                  {detailTimeline.map((item) => (
+                    <article className="timeline-item" key={item.id}>
+                      <span className={item.kind === "system" ? "timeline-avatar system" : "timeline-avatar"}>
+                        {item.kind === "system" ? "S" : item.author.slice(0, 1).toUpperCase()}
+                      </span>
+                      <div>
+                        <p>
+                          <strong>{item.author}</strong> <span>{formatRelativeTime(item.createdAt)}</span>
+                        </p>
+                        <p>{item.text}</p>
+                      </div>
+                    </article>
+                  ))}
+                </section>
+              </div>
+
+              <aside className="task-detail-side">
+                <div className="detail-side-actions">
+                  <button
+                    className="detail-primary-action"
+                    type="button"
+                    onClick={markDetailComplete}
+                    disabled={detailNote.status === "DONE" || updateNoteMutation.isPending}
+                  >
+                    Mark as Complete
+                  </button>
+                  <button className="detail-secondary-action" type="button" onClick={() => selectNote(detailNote)}>
+                    Edit Task
+                  </button>
+                </div>
+
+                <div className="detail-side-field">
+                  <label htmlFor="detail-status">Status</label>
+                  <select
+                    id="detail-status"
+                    value={detailNote.status}
+                    onChange={(event) => updateDetailStatus(event.target.value)}
+                    disabled={updateNoteMutation.isPending}
+                  >
+                    <option value="TODO">To Do</option>
+                    <option value="DOING">In Progress</option>
+                    <option value="DONE">Done</option>
+                  </select>
+                </div>
+
+                <div className="detail-side-field">
+                  <span>Priority</span>
+                  <span className={priorityChipClass(detailNote.priority)}>{priorityLabel(detailNote.priority)}</span>
+                </div>
+
+                <div className="detail-side-field">
+                  <span>Assignees</span>
+                  <div className="detail-assignee-list">
+                    {(detailNote.assignees?.length ? detailNote.assignees : [detailNote.main_assignee]).map((assignee) => (
+                      <div className="detail-assignee-card" key={assignee.id}>
+                        <span className="detail-assignee-avatar">{assignee.name.slice(0, 1).toUpperCase()}</span>
+                        <div>
+                          <strong>{assignee.name}</strong>
+                          <small>{assignee.is_active ? "Active assignee" : "Inactive assignee"}</small>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="detail-side-field">
+                  <span>Due Date</span>
+                  <strong>{formatDeadline(detailNote.deadline_at)}</strong>
+                </div>
+
+                <div className="detail-side-field">
+                  <span>Project associated</span>
+                  <strong className="detail-project-name">{detailNote.folder.name}</strong>
+                </div>
+
+                <div className="detail-side-field">
+                  <span>Tags</span>
+                  <div className="detail-tag-list">
+                    {detailNote.tags.length === 0 ? <small>No tags</small> : null}
+                    {detailNote.tags.map((tag) => (
+                      <span className="detail-tag" key={tag.id}>
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </aside>
+            </section>
+          </div>
+        ) : null}
+
+        {isEditorOpen ? (
+          <div className="task-modal-backdrop" role="presentation">
+            <section className="task-modal create-task-modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+              <div className="create-task-header">
+                <h2 id="task-modal-title">{selectedNote ? "Edit Task" : "Create New Task"}</h2>
+              </div>
+              <div className="task-modal-body">
+                {message ? <p className={`status-text ${messageTone}`}>{message}</p> : null}
+                <form className="create-task-form" onSubmit={handleSubmit}>
+                  <input
+                    className="create-task-title"
+                    id="note-title"
+                    value={form.title}
+                    onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                    placeholder="Enter Task Title"
+                    required
+                  />
+
+                  <div className="create-task-field full">
+                    <label htmlFor="note-content">Description</label>
+                    <div className="rich-editor-shell">
+                      <div className="rich-toolbar" aria-hidden="true">
+                        <strong>B</strong>
+                        <em>I</em>
+                        <span>S</span>
+                        <span>List</span>
+                        <span>Link</span>
+                        <span>Img</span>
+                      </div>
+                      <textarea
+                        id="note-content"
+                        value={form.content}
+                        onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
+                        placeholder="Add details about the task here, including requirements and objectives."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="create-task-field">
+                    <span className="form-label">Project</span>
+                    <button className="picker-open-button" type="button" onClick={() => setIsProjectPickerOpen(true)}>
+                      <span>{selectedProjectName()}</span>
+                      <span>Change</span>
+                    </button>
+                  </div>
+
+                  <div className="create-task-field">
+                    <span className="form-label">Assignees</span>
+                    <button className="picker-open-button" type="button" onClick={() => setIsAssigneePickerOpen(true)}>
+                      <span>
+                        {selectedAssigneeNames().length > 0
+                          ? selectedAssigneeNames().join(", ")
+                          : "Select assignees"}
+                      </span>
+                      <span>Change</span>
+                    </button>
+                  </div>
+
+                  <div className="create-task-field">
+                    <span className="form-label">Priority</span>
+                    <div className="priority-segment">
+                      {[
+                        ["LOW", "Low"],
+                        ["MEDIUM", "Medium"],
+                        ["HIGH", "High"],
+                        ["CRITICAL", "Urgent"],
+                      ].map(([value, label]) => (
+                        <button
+                          className={form.priority === value ? "active" : ""}
+                          key={value}
+                          type="button"
+                          onClick={() => setForm((current) => ({ ...current, priority: value }))}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="create-task-field">
+                    <label htmlFor="note-deadline">Due Date</label>
+                    <input
+                      id="note-deadline"
+                      type="datetime-local"
+                      value={form.deadline_at}
+                      onChange={(event) => setForm((current) => ({ ...current, deadline_at: event.target.value }))}
+                    />
+                  </div>
+
+                  <div className="create-task-field full">
+                    <label htmlFor="note-tags">Tags</label>
+                    <div className="tag-input-box create-tags">
+                      {form.tag_names.map((tagName) => (
+                        <span className="tag-chip" key={tagName}>
+                          {tagName}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setForm((current) => ({
+                                ...current,
+                                tag_names: current.tag_names.filter((currentTagName) => currentTagName !== tagName),
+                              }))
+                            }
+                            aria-label={`Remove tag ${tagName}`}
+                          >
+                            x
+                          </button>
+                        </span>
+                      ))}
+                      <input
+                        id="note-tags"
+                        list="available-tags"
+                        value={tagDraft}
+                        onBlur={() => addTagName(tagDraft)}
+                        onChange={(event) => setTagDraft(event.target.value)}
+                        onKeyDown={handleTagInputKeyDown}
+                        placeholder="Type tag and press Enter"
+                      />
+                      <datalist id="available-tags">
+                        {(tagsQuery.data ?? []).map((tag) => (
+                          <option key={tag.id} value={tag.name} />
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  <div className="create-task-field full">
+                    <span className="form-label">Subtasks</span>
+                    <div className="create-subtask-list">
+                      {form.subtasks.map((subtask, index) => (
+                        <div className="create-subtask-row" key={subtask.id ?? index}>
+                          <input
+                            checked={subtask.status === "DONE"}
+                            type="checkbox"
+                            onChange={(event) => updateSubtask(index, { status: event.target.checked ? "DONE" : "TODO" })}
+                          />
+                          <textarea
+                            rows={1}
+                            value={subtask.title}
+                            onChange={(event) => updateSubtask(index, { title: event.target.value })}
+                            placeholder="Subtask details"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setForm((current) => ({
+                                ...current,
+                                subtasks: current.subtasks.filter((_, subtaskIndex) => subtaskIndex !== index),
+                              }))
+                            }
+                            aria-label="Remove subtask"
+                          >
+                            x
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        className="add-subtask-button"
+                        type="button"
+                        onClick={() =>
+                          setForm((current) => ({
+                            ...current,
+                            subtasks: [
+                              ...current.subtasks,
+                              {
+                                title: "",
+                                assignee_id: current.main_assignee_id,
+                                status: "TODO",
+                                sort_order: current.subtasks.length + 1,
+                              },
+                            ],
+                          }))
+                        }
+                      >
+                        + Add Subtask
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="create-task-footer">
+                    {selectedNoteId ? (
+                      <button className="btn btn-danger" type="button" onClick={deleteSelectedNote} disabled={deleteNoteMutation.isPending}>
+                        Delete
+                      </button>
+                    ) : null}
+                    <button className="cancel-task-button" type="button" onClick={closeEditor}>
+                      Cancel
+                    </button>
+                    <button
+                      className="create-task-submit"
+                      type="submit"
+                      disabled={
+                        createNoteMutation.isPending ||
+                        updateNoteMutation.isPending ||
+                        !form.folder_id ||
+                        form.assignee_ids.length === 0
+                      }
+                    >
+                      {selectedNote ? "Update Task" : "Create Task"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
+            {isProjectPickerOpen ? (
+              <section className="picker-modal" role="dialog" aria-modal="true" aria-labelledby="project-picker-title">
+                <div className="picker-modal-header">
+                  <h3 id="project-picker-title">Select Project</h3>
+                  <button type="button" onClick={() => setIsProjectPickerOpen(false)} aria-label="Close project picker">
+                    x
+                  </button>
+                </div>
+                <div className="picker-create-row">
+                  <input
+                    value={newProjectName}
+                    onChange={(event) => setNewProjectName(event.target.value)}
+                    placeholder="New project name"
+                  />
+                  <button type="button" onClick={createProjectFromPicker} disabled={createFolderMutation.isPending}>
+                    +
+                  </button>
+                </div>
+                <div className="picker-option-list">
+                  {(foldersQuery.data ?? []).map((folder) => (
+                    <button
+                      className={form.folder_id === folder.id ? "active" : ""}
+                      key={folder.id}
+                      type="button"
+                      onClick={() => {
+                        setForm((current) => ({ ...current, folder_id: folder.id }));
+                        setIsProjectPickerOpen(false);
+                      }}
+                    >
+                      <span>{folder.name}</span>
+                      <small>{folder.is_system ? "System" : "Project"}</small>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {isAssigneePickerOpen ? (
+              <section className="picker-modal" role="dialog" aria-modal="true" aria-labelledby="assignee-picker-title">
+                <div className="picker-modal-header">
+                  <h3 id="assignee-picker-title">Select Assignees</h3>
+                  <button type="button" onClick={() => setIsAssigneePickerOpen(false)} aria-label="Close assignee picker">
+                    x
+                  </button>
+                </div>
+                <div className="picker-create-row">
+                  <input
+                    value={newAssigneeName}
+                    onChange={(event) => setNewAssigneeName(event.target.value)}
+                    placeholder="New assignee name"
+                  />
+                  <button type="button" onClick={createAssigneeFromPicker} disabled={createAssigneeMutation.isPending}>
+                    +
+                  </button>
+                </div>
+                <div className="picker-option-list">
+                  {(assigneesQuery.data ?? [])
+                    .filter((assignee) => assignee.is_active)
+                    .map((assignee) => (
+                      <button
+                        className={form.assignee_ids.includes(assignee.id) ? "active" : ""}
+                        key={assignee.id}
+                        type="button"
+                        onClick={() => toggleAssignee(assignee.id)}
+                      >
+                        <span>{assignee.name}</span>
+                        <small>{form.main_assignee_id === assignee.id ? "Primary" : "Assignee"}</small>
+                      </button>
+                    ))}
+                </div>
+                <div className="picker-footer">
+                  <button type="button" onClick={() => setIsAssigneePickerOpen(false)}>
+                    Done
+                  </button>
+                </div>
+              </section>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </main>
+  );
+}

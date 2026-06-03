@@ -1,0 +1,71 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: leonote-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-personal_notes}
+      POSTGRES_USER: ${POSTGRES_USER:-personal_notes_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+      - ./scripts/backup-postgres.sh:/backups/backup-postgres.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/docker/backend.Dockerfile
+    container_name: leonote-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: production
+      APP_HOST: 0.0.0.0
+      APP_PORT: 9111
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Ho_Chi_Minh}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-personal_notes_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-personal_notes}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${JWT_REFRESH_TOKEN_EXPIRE_DAYS:-30}
+      CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS is required}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+    command: >
+      sh -c "python -m alembic upgrade head &&
+             python -m uvicorn app.main:app --host 0.0.0.0 --port 9111"
+    expose:
+      - "9111"
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/docker/web.Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    container_name: leonote-web
+    restart: unless-stopped
+    expose:
+      - "80"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: leonote-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - web
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  postgres_data:
