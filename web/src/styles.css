@@ -2503,6 +2503,7 @@ a:hover {
 
   .taskflow-sidebar {
     position: fixed;
+    top: auto;
     left: 0;
     right: 0;
     bottom: 0;
