@@ -18,7 +18,10 @@ class TagRef(BaseModel):
 class SubtaskPayload(BaseModel):
     id: str | None = None
     title: str = Field(min_length=1)
+    content: str | None = None
     assignee_id: str
+    priority: str = "MEDIUM"
+    deadline_at: datetime | None = None
     status: str = "TODO"
     sort_order: int = 0
 
@@ -39,7 +42,10 @@ class NotePayload(BaseModel):
 class SubtaskResponse(BaseModel):
     id: str
     title: str
+    content: str | None = None
     assignee: EntityRef
+    priority: str
+    deadline_at: datetime | None = None
     status: str
     sort_order: int
     completed_at: datetime | None = None

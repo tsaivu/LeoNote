@@ -334,6 +334,13 @@ class Subtask(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
         nullable=False,
     )
     title: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    priority: Mapped[NotePriority] = mapped_column(
+        Enum(NotePriority, name="note_priority_enum", values_callable=lambda e: [item.value for item in e]),
+        nullable=False,
+        default=NotePriority.MEDIUM,
+    )
+    deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     status: Mapped[SubtaskStatus] = mapped_column(
         Enum(SubtaskStatus, name="subtask_status_enum", values_callable=lambda e: [item.value for item in e]),
         nullable=False,

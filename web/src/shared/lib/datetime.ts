@@ -8,9 +8,23 @@ const vietnamDateTimeFormatter = new Intl.DateTimeFormat("vi-VN", {
   hour12: false,
 });
 
+const vietnamDateFormatter = new Intl.DateTimeFormat("vi-VN", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
 export function formatVietnamDateTime(value: string | null | undefined): string {
   if (!value) {
     return "No deadline";
   }
   return vietnamDateTimeFormatter.format(new Date(value)).replace(",", "");
+}
+
+export function formatVietnamDate(value: string | null | undefined): string {
+  if (!value) {
+    return "No deadline";
+  }
+  return vietnamDateFormatter.format(new Date(value));
 }

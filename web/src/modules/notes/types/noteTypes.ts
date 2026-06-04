@@ -28,11 +28,14 @@ export type NoteItem = {
   subtasks: Array<{
     id: string;
     title: string;
+    content?: string | null;
     assignee: {
       id: string;
       name: string;
       is_active: boolean;
     };
+    priority: string;
+    deadline_at: string | null;
     status: string;
     sort_order: number;
     completed_at?: string | null;
@@ -45,7 +48,10 @@ export type NoteItem = {
 export type SubtaskPayload = {
   id?: string | null;
   title: string;
+  content?: string | null;
   assignee_id: string;
+  priority: string;
+  deadline_at?: string | null;
   status: string;
   sort_order: number;
 };

@@ -1,11 +1,14 @@
 import { FormEvent, KeyboardEvent, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { useAssignees, useCreateAssignee } from "../../assignees/hooks/useAssignees";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCreateFolder, useFolders } from "../../folders/hooks/useFolders";
+import { formatVietnamDate } from "../../../shared/lib/datetime";
+import { isRichTextEmpty, sanitizeRichTextHtml } from "../../../shared/lib/richText";
 import { useCreateTag } from "../../tags/hooks/useTags";
 import { useTags } from "../../tags/hooks/useTags";
+import { RichTextEditor } from "../components/RichTextEditor";
 import { useCreateNote, useCreateNoteComment, useDeleteNote, useNoteComments, useNotes, useUpdateNote } from "../hooks/useNotes";
 import type { NoteItem, NotePayload, SubtaskPayload } from "../types/noteTypes";
 
@@ -37,6 +40,17 @@ const emptyForm: NoteFormState = {
 
 type MessageTone = "success" | "danger";
 
+type SubtaskFormState = {
+  id?: string | null;
+  title: string;
+  content: string;
+  assignee_id: string;
+  priority: string;
+  deadline_at: string;
+  status: string;
+  sort_order: number;
+};
+
 type TimelineItem = {
   id: string;
   author: string;
@@ -45,14 +59,31 @@ type TimelineItem = {
   kind: "comment" | "timeline" | "system";
 };
 
-function toLocalInputValue(value: string | null) {
+function toDateInputValue(value: string | null | undefined) {
   if (!value) {
     return "";
   }
-  const date = new Date(value);
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60_000);
-  return local.toISOString().slice(0, 16);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(value));
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+  const day = parts.find((part) => part.type === "day")?.value ?? "";
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateInputPreview(value: string) {
+  if (!value) {
+    return "No due date";
+  }
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) {
+    return "No due date";
+  }
+  return `${day}/${month}/${year}`;
 }
 
 function fromNote(note: NoteItem): NoteFormState {
@@ -64,12 +95,15 @@ function fromNote(note: NoteItem): NoteFormState {
     assignee_ids: (note.assignees?.length ? note.assignees : [note.main_assignee]).map((assignee) => assignee.id),
     status: note.status,
     priority: note.priority,
-    deadline_at: toLocalInputValue(note.deadline_at),
+    deadline_at: toDateInputValue(note.deadline_at),
     tag_names: note.tags.map((tag) => tag.name),
     subtasks: note.subtasks.map((subtask) => ({
       id: subtask.id,
       title: subtask.title,
+      content: subtask.content ?? "",
       assignee_id: subtask.assignee?.id ?? note.main_assignee.id,
+      priority: subtask.priority,
+      deadline_at: subtask.deadline_at,
       status: subtask.status,
       sort_order: subtask.sort_order,
     })),
@@ -81,7 +115,7 @@ function toPayload(form: NoteFormState, tagIds: string[]): NotePayload {
   const mainAssigneeId = assigneeIds[0] ?? form.main_assignee_id;
   const payload: NotePayload = {
     title: form.title,
-    content: form.content || null,
+    content: sanitizeRichTextHtml(form.content) || null,
     folder_id: form.folder_id || null,
     main_assignee_id: mainAssigneeId,
     assignee_ids: assigneeIds,
@@ -90,12 +124,14 @@ function toPayload(form: NoteFormState, tagIds: string[]): NotePayload {
     tag_ids: tagIds,
     subtasks: form.subtasks.map((subtask, index) => ({
       ...subtask,
+      content: subtask.content || null,
       assignee_id: subtask.assignee_id || mainAssigneeId,
+      deadline_at: subtask.deadline_at || null,
       sort_order: subtask.sort_order || index + 1,
     })),
   };
   if (form.deadline_at) {
-    payload.deadline_at = new Date(form.deadline_at).toISOString();
+    payload.deadline_at = new Date(`${form.deadline_at}T00:00:00+07:00`).toISOString();
   }
   return payload;
 }
@@ -141,12 +177,7 @@ function formatDeadline(value: string | null) {
   if (!value) {
     return "No deadline";
   }
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-    timeZone: "Asia/Ho_Chi_Minh",
-  }).format(new Date(value));
+  return formatVietnamDate(value);
 }
 
 function getProgress(note: NoteItem) {
@@ -183,6 +214,27 @@ function getAssigneeInitials(note: NoteItem) {
     .map((name) => name.trim().charAt(0).toUpperCase() || "?");
 }
 
+function getAssigneeNames(note: NoteItem) {
+  const names = [
+    ...(note.assignees?.length ? note.assignees.map((assignee) => assignee.name) : [note.main_assignee.name]),
+    ...note.subtasks.map((subtask) => subtask.assignee.name),
+  ];
+  return Array.from(new Set(names)).filter(Boolean);
+}
+
+function toSubtaskFormState(subtask?: SubtaskPayload | null, fallbackAssigneeId = ""): SubtaskFormState {
+  return {
+    id: subtask?.id ?? null,
+    title: subtask?.title ?? "",
+    content: subtask?.content ?? "",
+    assignee_id: subtask?.assignee_id ?? fallbackAssigneeId,
+    priority: subtask?.priority ?? "MEDIUM",
+    deadline_at: toDateInputValue(subtask?.deadline_at),
+    status: subtask?.status ?? "TODO",
+    sort_order: subtask?.sort_order ?? 0,
+  };
+}
+
 function buildPayloadFromNote(note: NoteItem, patch: Partial<NoteFormState> = {}): NotePayload {
   const form = { ...fromNote(note), ...patch };
   return toPayload(
@@ -206,8 +258,12 @@ function formatRelativeTime(value: string) {
 
 export function NotesWorkspacePage() {
   const { isAuthenticated, user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeStatus, setActiveStatus] = useState<"TODO" | "DOING" | "DONE">("TODO");
+  const [activePriorityFilter, setActivePriorityFilter] = useState<"ALL" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL">("ALL");
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const deferredSearchTerm = useDeferredValue(searchTerm);
   const noteParams = useMemo(() => {
@@ -216,11 +272,14 @@ export function NotesWorkspacePage() {
       params.set("q", deferredSearchTerm.trim());
     }
     params.set("status", activeStatus);
+    if (activePriorityFilter !== "ALL") {
+      params.set("priority", activePriorityFilter);
+    }
     if (activeFolderId) {
       params.set("folder_id", activeFolderId);
     }
     return params;
-  }, [activeFolderId, activeStatus, deferredSearchTerm]);
+  }, [activeFolderId, activePriorityFilter, activeStatus, deferredSearchTerm]);
   const notesQuery = useNotes(isAuthenticated, noteParams);
   const foldersQuery = useFolders(isAuthenticated);
   const assigneesQuery = useAssignees(isAuthenticated);
@@ -247,6 +306,9 @@ export function NotesWorkspacePage() {
   const [newProjectName, setNewProjectName] = useState("");
   const [newAssigneeName, setNewAssigneeName] = useState("");
   const [detailSubtaskStatuses, setDetailSubtaskStatuses] = useState<Record<string, string>>({});
+  const [isSubtaskEditorOpen, setIsSubtaskEditorOpen] = useState(false);
+  const [editingSubtaskIndex, setEditingSubtaskIndex] = useState<number | null>(null);
+  const [subtaskForm, setSubtaskForm] = useState<SubtaskFormState>(() => toSubtaskFormState(null));
 
   const notes = notesQuery.data ?? [];
   const selectedNote = useMemo(
@@ -314,6 +376,22 @@ export function NotesWorkspacePage() {
     );
   }, [detailNote?.id]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("new") !== "1" || isEditorOpen) {
+      return;
+    }
+    startNewNote();
+    params.delete("new");
+    navigate(
+      {
+        pathname: location.pathname,
+        search: params.toString() ? `?${params.toString()}` : "",
+      },
+      { replace: true },
+    );
+  }, [isEditorOpen, location.pathname, location.search, navigate]);
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -338,6 +416,7 @@ export function NotesWorkspacePage() {
     setMessage(null);
     setMessageTone("success");
     setIsEditorOpen(true);
+    setIsSubtaskEditorOpen(false);
     setTagDraft("");
   }
 
@@ -359,6 +438,7 @@ export function NotesWorkspacePage() {
     setMessage(null);
     setMessageTone("success");
     setIsEditorOpen(true);
+    setIsSubtaskEditorOpen(false);
     setTagDraft("");
   }
 
@@ -454,6 +534,7 @@ export function NotesWorkspacePage() {
       return;
     }
     setIsEditorOpen(false);
+    setIsSubtaskEditorOpen(false);
     setMessage(null);
     setMessageTone("success");
     setTagDraft("");
@@ -605,12 +686,67 @@ export function NotesWorkspacePage() {
     }
   }
 
-  function updateSubtask(index: number, patch: Partial<SubtaskPayload>) {
+  function openSubtaskEditor(index?: number) {
+    const target = typeof index === "number" ? form.subtasks[index] : null;
+    setEditingSubtaskIndex(typeof index === "number" ? index : null);
+    setSubtaskForm(toSubtaskFormState(target, form.main_assignee_id || (assigneesQuery.data?.[0]?.id ?? "")));
+    setIsSubtaskEditorOpen(true);
+  }
+
+  function closeSubtaskEditor() {
+    setIsSubtaskEditorOpen(false);
+    setEditingSubtaskIndex(null);
+    setSubtaskForm(toSubtaskFormState(null, form.main_assignee_id || (assigneesQuery.data?.[0]?.id ?? "")));
+  }
+
+  function saveSubtaskDraft() {
+    if (!subtaskForm.title.trim() || !subtaskForm.assignee_id) {
+      return;
+    }
+    const nextSubtask: SubtaskPayload = {
+      id: subtaskForm.id ?? null,
+      title: subtaskForm.title.trim(),
+      content: sanitizeRichTextHtml(subtaskForm.content),
+      assignee_id: subtaskForm.assignee_id,
+      priority: subtaskForm.priority,
+      deadline_at: subtaskForm.deadline_at ? new Date(`${subtaskForm.deadline_at}T00:00:00+07:00`).toISOString() : null,
+      status: subtaskForm.status,
+      sort_order: subtaskForm.sort_order,
+    };
+    setForm((current) => {
+      if (editingSubtaskIndex === null) {
+        return {
+          ...current,
+          subtasks: [
+            ...current.subtasks,
+            {
+              ...nextSubtask,
+              sort_order: current.subtasks.length + 1,
+            },
+          ],
+        };
+      }
+      return {
+        ...current,
+        subtasks: current.subtasks.map((subtask, index) =>
+          index === editingSubtaskIndex
+            ? {
+                ...nextSubtask,
+                sort_order: subtask.sort_order || index + 1,
+              }
+            : subtask,
+        ),
+      };
+    });
+    closeSubtaskEditor();
+  }
+
+  function removeSubtask(index: number) {
     setForm((current) => ({
       ...current,
-      subtasks: current.subtasks.map((subtask, subtaskIndex) =>
-        subtaskIndex === index ? { ...subtask, ...patch } : subtask,
-      ),
+      subtasks: current.subtasks
+        .filter((_, subtaskIndex) => subtaskIndex !== index)
+        .map((subtask, subtaskIndex) => ({ ...subtask, sort_order: subtaskIndex + 1 })),
     }));
   }
 
@@ -654,28 +790,69 @@ export function NotesWorkspacePage() {
       </aside>
 
       <div className="taskflow-main">
-        <section className="taskflow-board">
-          <div className="taskflow-board-header">
-            <label className="taskflow-search" htmlFor="task-search">
+        <header className="taskflow-mobile-header">
+          <div className="taskflow-mobile-brand">
+            <span className="taskflow-mobile-avatar">{user?.username?.slice(0, 1).toUpperCase() ?? "U"}</span>
+            <div className="taskflow-mobile-userblock">
+              <strong>{user?.display_name || user?.username || "User"}</strong>
+              <button className="taskflow-mobile-logout" type="button" onClick={logout} aria-label="Logout">
+                <span className="taskflow-mobile-logout-icon" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+          <div className="taskflow-mobile-header-actions">
+            <label className="taskflow-mobile-search-pill" htmlFor="task-search-header">
               <span className="search-icon" aria-hidden="true" />
               <input
-                id="task-search"
+                id="task-search-header"
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search tasks..."
               />
             </label>
-            <div className="taskflow-tabs" role="tablist" aria-label="Task status">
-              <button className={activeStatus === "TODO" ? "active" : ""} type="button" onClick={() => setActiveStatus("TODO")}>
-                To Do
-              </button>
-              <button className={activeStatus === "DOING" ? "active" : ""} type="button" onClick={() => setActiveStatus("DOING")}>
-                In Progress
-              </button>
-              <button className={activeStatus === "DONE" ? "active" : ""} type="button" onClick={() => setActiveStatus("DONE")}>
-                Done
-              </button>
+            <button
+              className="taskflow-mobile-filter-button"
+              type="button"
+              aria-label="Filter tasks"
+              onClick={() => setIsMobileFilterOpen((current) => !current)}
+            >
+              <span className="taskflow-mobile-filter-icon" aria-hidden="true" />
+            </button>
+          </div>
+        </header>
+        <section className="taskflow-board">
+          <div className="taskflow-board-header">
+            <div className={isMobileFilterOpen ? "taskflow-filter-panel mobile-open" : "taskflow-filter-panel"}>
+              <div className="taskflow-tabs" role="tablist" aria-label="Task status">
+                <button className={activeStatus === "TODO" ? "active" : ""} type="button" onClick={() => setActiveStatus("TODO")}>
+                  To Do
+                </button>
+                <button className={activeStatus === "DOING" ? "active" : ""} type="button" onClick={() => setActiveStatus("DOING")}>
+                  In Progress
+                </button>
+                <button className={activeStatus === "DONE" ? "active" : ""} type="button" onClick={() => setActiveStatus("DONE")}>
+                  Done
+                </button>
+              </div>
+              <div className="taskflow-priority-pills" role="tablist" aria-label="Priority filter">
+                {[
+                  ["ALL", "All"],
+                  ["LOW", "Low"],
+                  ["MEDIUM", "Medium"],
+                  ["HIGH", "High"],
+                  ["CRITICAL", "Urgent"],
+                ].map(([value, label]) => (
+                  <button
+                    className={activePriorityFilter === value ? "active" : ""}
+                    key={value}
+                    type="button"
+                    onClick={() => setActivePriorityFilter(value as "ALL" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL")}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -710,6 +887,7 @@ export function NotesWorkspacePage() {
             <tbody>
               {notes.map((note) => {
                 const progress = getProgress(note);
+                const assigneeNames = getAssigneeNames(note);
                 return (
                   <tr
                     key={note.id}
@@ -722,13 +900,22 @@ export function NotesWorkspacePage() {
                       </button>
                     </td>
                     <td>
-                      <span className={priorityChipClass(note.priority)}>{priorityLabel(note.priority)}</span>
+                      <span className={priorityChipClass(note.priority)} aria-label={priorityLabel(note.priority)} title={priorityLabel(note.priority)}>
+                        {priorityLabel(note.priority)}
+                      </span>
                     </td>
                     <td>
                       <span className="assignee-stack">
                         {getAssigneeInitials(note).map((initial, index) => (
                           <span className={`assignee-avatar avatar-${index + 1}`} key={`${note.id}-${initial}-${index}`}>
                             {initial}
+                          </span>
+                        ))}
+                      </span>
+                      <span className="task-assignee-pill-list" aria-label={`Assignees: ${assigneeNames.join(", ")}`}>
+                        {assigneeNames.map((name) => (
+                          <span className="task-assignee-pill" key={`${note.id}-${name}`}>
+                            {name}
                           </span>
                         ))}
                       </span>
@@ -769,9 +956,14 @@ export function NotesWorkspacePage() {
                   x
                 </button>
                 <h2 id="task-detail-title">{detailNote.title}</h2>
-                <p className="task-detail-description">
-                  {detailNote.content || "No description has been added for this task yet."}
-                </p>
+                {isRichTextEmpty(detailNote.content) ? (
+                  <p className="task-detail-description">No description has been added for this task yet.</p>
+                ) : (
+                  <div
+                    className="task-detail-description rich-text-content"
+                    dangerouslySetInnerHTML={{ __html: sanitizeRichTextHtml(detailNote.content ?? "") }}
+                  />
+                )}
 
                 <div className="detail-divider" />
 
@@ -923,6 +1115,9 @@ export function NotesWorkspacePage() {
             <section className="task-modal create-task-modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
               <div className="create-task-header">
                 <h2 id="task-modal-title">{selectedNote ? "Edit Task" : "Create New Task"}</h2>
+                <button className="create-task-close" type="button" onClick={closeEditor} aria-label="Close create task">
+                  x
+                </button>
               </div>
               <div className="task-modal-body">
                 {message ? <p className={`status-text ${messageTone}`}>{message}</p> : null}
@@ -938,22 +1133,12 @@ export function NotesWorkspacePage() {
 
                   <div className="create-task-field full">
                     <label htmlFor="note-content">Description</label>
-                    <div className="rich-editor-shell">
-                      <div className="rich-toolbar" aria-hidden="true">
-                        <strong>B</strong>
-                        <em>I</em>
-                        <span>S</span>
-                        <span>List</span>
-                        <span>Link</span>
-                        <span>Img</span>
-                      </div>
-                      <textarea
-                        id="note-content"
-                        value={form.content}
-                        onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
-                        placeholder="Add details about the task here, including requirements and objectives."
-                      />
-                    </div>
+                    <RichTextEditor
+                      id="note-content"
+                      value={form.content}
+                      onChange={(value) => setForm((current) => ({ ...current, content: value }))}
+                      placeholder="Add details about the task here, including requirements and objectives."
+                    />
                   </div>
 
                   <div className="create-task-field">
@@ -1001,10 +1186,11 @@ export function NotesWorkspacePage() {
                     <label htmlFor="note-deadline">Due Date</label>
                     <input
                       id="note-deadline"
-                      type="datetime-local"
+                      type="date"
                       value={form.deadline_at}
                       onChange={(event) => setForm((current) => ({ ...current, deadline_at: event.target.value }))}
                     />
+                    <small className="field-hint">{formatDateInputPreview(form.deadline_at)}</small>
                   </div>
 
                   <div className="create-task-field full">
@@ -1047,53 +1233,46 @@ export function NotesWorkspacePage() {
                   <div className="create-task-field full">
                     <span className="form-label">Subtasks</span>
                     <div className="create-subtask-list">
-                      {form.subtasks.map((subtask, index) => (
-                        <div className="create-subtask-row" key={subtask.id ?? index}>
-                          <input
-                            checked={subtask.status === "DONE"}
-                            type="checkbox"
-                            onChange={(event) => updateSubtask(index, { status: event.target.checked ? "DONE" : "TODO" })}
-                          />
-                          <textarea
-                            rows={1}
-                            value={subtask.title}
-                            onChange={(event) => updateSubtask(index, { title: event.target.value })}
-                            placeholder="Subtask details"
-                            required
-                          />
+                      {form.subtasks.length === 0 ? (
+                        <div className="create-subtask-empty">
+                          <p>No subtasks yet.</p>
                           <button
+                            className="add-subtask-button primary"
                             type="button"
-                            onClick={() =>
-                              setForm((current) => ({
-                                ...current,
-                                subtasks: current.subtasks.filter((_, subtaskIndex) => subtaskIndex !== index),
-                              }))
-                            }
-                            aria-label="Remove subtask"
+                            onClick={() => openSubtaskEditor()}
                           >
-                            x
+                            + Add Subtask
                           </button>
+                        </div>
+                      ) : null}
+                      {form.subtasks.map((subtask, index) => (
+                        <div className="create-subtask-card" key={subtask.id ?? index}>
+                          <div className="create-subtask-card-header">
+                            <strong>{subtask.title}</strong>
+                            <span className={priorityChipClass(subtask.priority)}>{priorityLabel(subtask.priority)}</span>
+                          </div>
+                          <div className="create-subtask-card-meta">
+                            <span>
+                              {(assigneesQuery.data ?? []).find((assignee) => assignee.id === subtask.assignee_id)?.name ?? "Unassigned"}
+                            </span>
+                            <span>{subtask.deadline_at ? formatDeadline(subtask.deadline_at) : "No deadline"}</span>
+                          </div>
+                          <div className="create-subtask-card-actions">
+                            <button type="button" onClick={() => openSubtaskEditor(index)}>
+                              Edit
+                            </button>
+                            <button type="button" onClick={() => removeSubtask(index)} aria-label="Remove subtask">
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       ))}
                       <button
                         className="add-subtask-button"
                         type="button"
-                        onClick={() =>
-                          setForm((current) => ({
-                            ...current,
-                            subtasks: [
-                              ...current.subtasks,
-                              {
-                                title: "",
-                                assignee_id: current.main_assignee_id,
-                                status: "TODO",
-                                sort_order: current.subtasks.length + 1,
-                              },
-                            ],
-                          }))
-                        }
+                        onClick={() => openSubtaskEditor()}
                       >
-                        + Add Subtask
+                        + Add Another Subtask
                       </button>
                     </div>
                   </div>
@@ -1104,9 +1283,6 @@ export function NotesWorkspacePage() {
                         Delete
                       </button>
                     ) : null}
-                    <button className="cancel-task-button" type="button" onClick={closeEditor}>
-                      Cancel
-                    </button>
                     <button
                       className="create-task-submit"
                       type="submit"
@@ -1123,6 +1299,114 @@ export function NotesWorkspacePage() {
                 </form>
               </div>
             </section>
+            {isSubtaskEditorOpen ? (
+              <section className="picker-modal subtask-modal" role="dialog" aria-modal="true" aria-labelledby="subtask-editor-title">
+                <div className="picker-modal-header">
+                  <h3 id="subtask-editor-title">{editingSubtaskIndex === null ? "Add Subtask" : "Edit Subtask"}</h3>
+                  <button type="button" onClick={closeSubtaskEditor} aria-label="Close subtask editor">
+                    x
+                  </button>
+                </div>
+                <div className="subtask-modal-body">
+                  <div className="create-task-field">
+                    <label htmlFor="subtask-title">Title</label>
+                    <input
+                      id="subtask-title"
+                      type="text"
+                      value={subtaskForm.title}
+                      onChange={(event) => setSubtaskForm((current) => ({ ...current, title: event.target.value }))}
+                      placeholder="Subtask title"
+                    />
+                  </div>
+
+                  <div className="create-task-field full">
+                    <label htmlFor="subtask-content">Description</label>
+                    <RichTextEditor
+                      id="subtask-content"
+                      value={subtaskForm.content}
+                      onChange={(value) => setSubtaskForm((current) => ({ ...current, content: value }))}
+                      placeholder="Describe the scope of this subtask."
+                    />
+                  </div>
+
+                  <div className="create-task-field">
+                    <span className="form-label">Assignee</span>
+                    <select
+                      value={subtaskForm.assignee_id}
+                      onChange={(event) => setSubtaskForm((current) => ({ ...current, assignee_id: event.target.value }))}
+                    >
+                      {(assigneesQuery.data ?? [])
+                        .filter((assignee) => assignee.is_active)
+                        .map((assignee) => (
+                          <option key={assignee.id} value={assignee.id}>
+                            {assignee.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div className="create-task-field full">
+                    <span className="form-label">Priority</span>
+                    <div className="priority-segment">
+                      {[
+                        ["LOW", "Low"],
+                        ["MEDIUM", "Medium"],
+                        ["HIGH", "High"],
+                        ["CRITICAL", "Urgent"],
+                      ].map(([value, label]) => (
+                        <button
+                          className={subtaskForm.priority === value ? "active" : ""}
+                          key={value}
+                          type="button"
+                          onClick={() => setSubtaskForm((current) => ({ ...current, priority: value }))}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="create-task-field">
+                    <label htmlFor="subtask-deadline">Due Date</label>
+                    <input
+                      id="subtask-deadline"
+                      type="date"
+                      value={subtaskForm.deadline_at}
+                      onChange={(event) => setSubtaskForm((current) => ({ ...current, deadline_at: event.target.value }))}
+                    />
+                    <small className="field-hint">{formatDateInputPreview(subtaskForm.deadline_at)}</small>
+                  </div>
+
+                  <div className="create-task-field">
+                    <span className="form-label">Status</span>
+                    <div className="priority-segment subtask-status-segment">
+                      {[
+                        ["TODO", "To Do"],
+                        ["DONE", "Done"],
+                      ].map(([value, label]) => (
+                        <button
+                          className={subtaskForm.status === value ? "active" : ""}
+                          key={value}
+                          type="button"
+                          onClick={() => setSubtaskForm((current) => ({ ...current, status: value }))}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="create-task-footer subtask-modal-footer">
+                    <button className="cancel-task-button" type="button" onClick={closeSubtaskEditor}>
+                      Cancel
+                    </button>
+                    <button className="create-task-submit" type="button" onClick={saveSubtaskDraft} disabled={!subtaskForm.title.trim() || !subtaskForm.assignee_id}>
+                      Save Subtask
+                    </button>
+                  </div>
+                </div>
+              </section>
+            ) : null}
             {isProjectPickerOpen ? (
               <section className="picker-modal" role="dialog" aria-modal="true" aria-labelledby="project-picker-title">
                 <div className="picker-modal-header">

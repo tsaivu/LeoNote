@@ -39,8 +39,8 @@ def _sync_completed_at(entity: Note | Subtask) -> None:
         entity.completed_at = None
 
 
-def _build_search_text(note: Note, tag_names: list[str], assignee_name: str) -> str:
-    return normalize_search_text(" ".join([note.title, note.content or "", assignee_name, *tag_names]))
+def _build_search_text(note: Note, tag_names: list[str], assignee_name: str, extra_terms: list[str] | None = None) -> str:
+    return normalize_search_text(" ".join([note.title, note.content or "", assignee_name, *tag_names, *(extra_terms or [])]))
 
 
 def _to_response(db: Session, note: Note) -> NoteResponse:
@@ -70,11 +70,14 @@ def _to_response(db: Session, note: Note) -> NoteResponse:
             SubtaskResponse(
                 id=str(subtask.id),
                 title=subtask.title,
+                content=subtask.content,
                 assignee=EntityRef(
                     id=str(subtask.assignee_id),
                     name=(repository.get_assignee(db, user_id=user_id, assignee_id=str(subtask.assignee_id)) or assignee).name,
                     is_active=(repository.get_assignee(db, user_id=user_id, assignee_id=str(subtask.assignee_id)) or assignee).is_active,
                 ),
+                priority=subtask.priority.value,
+                deadline_at=subtask.deadline_at,
                 status=subtask.status.value,
                 sort_order=subtask.sort_order,
                 completed_at=subtask.completed_at,
@@ -190,7 +193,12 @@ def create_note(db: Session, current_user: User, payload: NotePayload) -> NoteRe
             deadline_at=payload.deadline_at,
         )
         _sync_completed_at(note)
-        note.search_text = _build_search_text(note, [tag.name for tag in tags], assignee.name)
+        note.search_text = _build_search_text(
+            note,
+            [tag.name for tag in tags],
+            assignee.name,
+            [f"{item.title} {item.content or ''}" for item in payload.subtasks],
+        )
         repository.create_note(db, note)
         repository.replace_note_assignees(db, user_id=user_id, note_id=str(note.id), assignee_ids=assignee_ids)
         repository.replace_note_tags(db, user_id=user_id, note_id=str(note.id), tag_ids=payload.tag_ids)
@@ -200,6 +208,9 @@ def create_note(db: Session, current_user: User, payload: NotePayload) -> NoteRe
                 note_id=note.id,
                 assignee_id=item.assignee_id,
                 title=item.title,
+                content=item.content,
+                priority=_validate_priority(item.priority),
+                deadline_at=item.deadline_at,
                 status=_validate_subtask_status(item.status),
                 sort_order=item.sort_order,
             )
@@ -228,7 +239,12 @@ def update_note(db: Session, current_user: User, note_id: str, payload: NotePayl
         note.priority = _validate_priority(payload.priority)
         note.deadline_at = payload.deadline_at
         _sync_completed_at(note)
-        note.search_text = _build_search_text(note, [tag.name for tag in tags], assignee.name)
+        note.search_text = _build_search_text(
+            note,
+            [tag.name for tag in tags],
+            assignee.name,
+            [f"{item.title} {item.content or ''}" for item in payload.subtasks],
+        )
         repository.replace_note_assignees(db, user_id=user_id, note_id=note_id, assignee_ids=assignee_ids)
         repository.replace_note_tags(db, user_id=user_id, note_id=note_id, tag_ids=payload.tag_ids)
         keep_ids: set[str] = set()
@@ -239,7 +255,10 @@ def update_note(db: Session, current_user: User, note_id: str, payload: NotePayl
                 db.add(subtask)
                 db.flush()
             subtask.title = item.title
+            subtask.content = item.content
             subtask.assignee_id = item.assignee_id
+            subtask.priority = _validate_priority(item.priority)
+            subtask.deadline_at = item.deadline_at
             subtask.status = _validate_subtask_status(item.status)
             subtask.sort_order = item.sort_order
             subtask.deleted_at = None
