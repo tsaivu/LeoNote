@@ -2,11 +2,15 @@ import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 
 import { useAuth } from "../../auth/hooks/useAuth";
+import { MobileManagementHeader } from "../../../shared/components/MobileManagementHeader";
+import { MobilePageBarAction } from "../../../shared/components/MobilePageBarAction";
+import { MobilePanelHeader } from "../../../shared/components/MobilePanelHeader";
+import { formatVietnamDate } from "../../../shared/lib/datetime";
 import { formatVietnamDateTime } from "../../../shared/lib/datetime";
 import { useRestoreNote, useTrashNotes } from "../hooks/useNotes";
 
 export function TrashPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const trashQuery = useTrashNotes(isAuthenticated);
   const restoreNote = useRestoreNote();
   const [message, setMessage] = useState<string | null>(null);
@@ -41,6 +45,17 @@ export function TrashPage() {
         </nav>
       </aside>
       <div className="content">
+        <MobileManagementHeader
+          userName={user?.display_name || user?.username || "User"}
+          onLogout={logout}
+          title="Trash"
+          subtitle="Restore deleted tasks."
+          action={
+            <MobilePageBarAction icon="back" kind="secondary" to="/">
+              Back
+            </MobilePageBarAction>
+          }
+        />
         <header className="topbar">
           <div>
             <h1>Trash</h1>
@@ -49,21 +64,29 @@ export function TrashPage() {
           <Link className="btn btn-secondary" to="/">Back to Dashboard</Link>
         </header>
         <section className="panel stack-top">
-          <div className="panel-header">
-            <h2>Deleted Tasks</h2>
-            {message ? <span className="status-text success">{message}</span> : null}
-          </div>
+          <MobilePanelHeader
+            title="Recently Deleted"
+            meta={
+              <>
+                <span className="chip panel-meta-chip warning">{trashQuery.data?.length ?? 0}</span>
+                {message ? <span className="status-text success">{message}</span> : null}
+              </>
+            }
+          />
           {trashQuery.isLoading ? <p className="empty-state">Loading...</p> : null}
           {trashQuery.isError ? <p className="empty-state">Failed to load trash.</p> : null}
           <div className="note-list">
             {(trashQuery.data ?? []).map((note) => (
-              <article className="note-card" key={note.id}>
-                <span className="note-card-title">{note.title}</span>
-                <span className="note-card-meta">
-                  <span>Deadline: {formatVietnamDateTime(note.deadline_at)}</span>
-                  <span>Deleted: {note.deleted_at ? formatVietnamDateTime(note.deleted_at) : ""}</span>
-                </span>
-                <div>
+              <article className="note-card trash-note-card" key={note.id}>
+                <div className="trash-note-card-head">
+                  <span className="note-card-title">{note.title}</span>
+                  <span className="chip warning">Deleted</span>
+                </div>
+                <div className="note-card-meta trash-note-card-meta">
+                  <span>{note.deadline_at ? `Deadline ${formatVietnamDate(note.deadline_at)}` : "No deadline"}</span>
+                  <span>{note.deleted_at ? `Deleted ${formatVietnamDateTime(note.deleted_at)}` : ""}</span>
+                </div>
+                <div className="trash-note-card-actions">
                   <button className="btn btn-primary" type="button" onClick={() => handleRestore(note.id)} disabled={restoreNote.isPending}>
                     Restore
                   </button>

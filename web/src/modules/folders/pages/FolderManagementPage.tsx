@@ -1,6 +1,9 @@
 import { FormEvent, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 
+import { MobileManagementHeader } from "../../../shared/components/MobileManagementHeader";
+import { MobilePageBarAction } from "../../../shared/components/MobilePageBarAction";
+import { MobilePanelHeader } from "../../../shared/components/MobilePanelHeader";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCreateFolder, useDeleteFolder, useFolders, useUpdateFolder } from "../hooks/useFolders";
 import type { Folder } from "../types/folderTypes";
@@ -39,8 +42,17 @@ function folderDepth(folder: Folder, folders: Folder[]): number {
   return depth;
 }
 
+function folderParentLabel(folder: Folder, folders: Folder[]): string {
+  if (!folder.parent_id) {
+    return "Root level";
+  }
+
+  const parent = folders.find((item) => item.id === folder.parent_id);
+  return parent ? `Inside ${parent.name}` : "Nested folder";
+}
+
 export function FolderManagementPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const foldersQuery = useFolders(isAuthenticated);
   const createFolder = useCreateFolder();
   const updateFolder = useUpdateFolder();
@@ -112,6 +124,24 @@ export function FolderManagementPage() {
         </nav>
       </aside>
       <div className="content">
+        <MobileManagementHeader
+          userName={user?.display_name || user?.username || "User"}
+          onLogout={logout}
+          title="Folders"
+          subtitle="Manage the note tree."
+          action={
+            <MobilePageBarAction
+              icon="plus"
+              onClick={() => {
+                setSelectedId(null);
+                setForm(emptyForm);
+                setMessage(null);
+              }}
+            >
+              New
+            </MobilePageBarAction>
+          }
+        />
         <header className="topbar">
           <div>
             <h1>Folders</h1>
@@ -131,14 +161,18 @@ export function FolderManagementPage() {
         </header>
         <div className="management-grid">
           <section className="panel">
-            <div className="panel-header">
-              <h2>Tree</h2>
-            </div>
+            <MobilePanelHeader
+              title="Active Folders"
+              meta={
+                <span className="chip panel-meta-chip">{sortedFolders.length}</span>
+              }
+            />
             {foldersQuery.isLoading ? <p className="empty-state">Loading...</p> : null}
+            {!foldersQuery.isLoading && sortedFolders.length === 0 ? <p className="empty-state">No folders yet. Create your first folder.</p> : null}
             <div className="row-list">
               {sortedFolders.map((folder) => (
                 <button
-                  className="row-button"
+                  className={selectedId === folder.id ? "row-button active" : "row-button"}
                   key={folder.id}
                   type="button"
                   onClick={() => {
@@ -147,16 +181,22 @@ export function FolderManagementPage() {
                     setMessage(null);
                   }}
                 >
-                  <span style={{ paddingLeft: `${folderDepth(folder, folders) * 16}px` }}>{folder.name}</span>
+                  <span className="row-button-copy" style={{ paddingLeft: `${folderDepth(folder, folders) * 16}px` }}>
+                    <strong>{folder.name}</strong>
+                    <span>{folderParentLabel(folder, folders)}</span>
+                  </span>
                   {folder.is_system ? <span className="chip">System</span> : null}
                 </button>
               ))}
             </div>
           </section>
           <section className="panel">
-            <div className="panel-header">
-              <h2>{selectedId ? "Edit Folder" : "Create Folder"}</h2>
-            </div>
+            <MobilePanelHeader
+              title={selectedId ? "Folder Details" : "Create Folder"}
+              meta={
+                <span className="chip panel-meta-chip">{selectedId ? "Editing" : "New"}</span>
+              }
+            />
             <div className="panel-body">
               {message ? <p className="status-text success">{message}</p> : null}
               <form className="form-grid" onSubmit={handleSubmit}>

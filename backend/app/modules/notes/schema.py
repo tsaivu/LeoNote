@@ -34,6 +34,7 @@ class NotePayload(BaseModel):
     assignee_ids: list[str] = Field(default_factory=list)
     status: str = "TODO"
     priority: str = "MEDIUM"
+    progress_percent: int = Field(default=0, ge=0, le=100)
     deadline_at: datetime | None = None
     tag_ids: list[str] = Field(default_factory=list)
     subtasks: list[SubtaskPayload] = Field(default_factory=list)
@@ -60,6 +61,7 @@ class NoteResponse(BaseModel):
     assignees: list[EntityRef] = Field(default_factory=list)
     status: str
     priority: str
+    progress_percent: int
     deadline_at: datetime | None = None
     completed_at: datetime | None = None
     tags: list[TagRef] = Field(default_factory=list)

@@ -1,6 +1,9 @@
 import { FormEvent, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 
+import { MobileManagementHeader } from "../../../shared/components/MobileManagementHeader";
+import { MobilePageBarAction } from "../../../shared/components/MobilePageBarAction";
+import { MobilePanelHeader } from "../../../shared/components/MobilePanelHeader";
 import { useAuth } from "../../auth/hooks/useAuth";
 import {
   useActivateAssignee,
@@ -36,7 +39,7 @@ function toForm(assignee: Assignee): AssigneeForm {
 }
 
 export function AssigneeManagementPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const assigneesQuery = useAssignees(isAuthenticated);
   const createAssignee = useCreateAssignee();
   const updateAssignee = useUpdateAssignee();
@@ -119,6 +122,24 @@ export function AssigneeManagementPage() {
         </nav>
       </aside>
       <div className="content">
+        <MobileManagementHeader
+          userName={user?.display_name || user?.username || "User"}
+          onLogout={logout}
+          title="Team Members"
+          subtitle="Internal assignee directory."
+          action={
+            <MobilePageBarAction
+              icon="plus"
+              onClick={() => {
+                setSelectedId(null);
+                setForm(emptyForm);
+                setMessage(null);
+              }}
+            >
+              New
+            </MobilePageBarAction>
+          }
+        />
         <header className="topbar">
           <div>
             <h1>Team Members</h1>
@@ -138,14 +159,20 @@ export function AssigneeManagementPage() {
         </header>
         <div className="management-grid">
           <section className="panel">
-            <div className="panel-header">
-              <h2>Directory</h2>
-            </div>
+            <MobilePanelHeader
+              title="Team Directory"
+              meta={
+                <span className="chip panel-meta-chip">{(assigneesQuery.data ?? []).length}</span>
+              }
+            />
             {assigneesQuery.isLoading ? <p className="empty-state">Loading...</p> : null}
+            {!assigneesQuery.isLoading && (assigneesQuery.data ?? []).length === 0 ? (
+              <p className="empty-state">No team members yet. Add someone to start assigning tasks.</p>
+            ) : null}
             <div className="row-list">
               {(assigneesQuery.data ?? []).map((assignee) => (
                 <button
-                  className="row-button"
+                  className={selectedId === assignee.id ? "row-button active" : "row-button"}
                   key={assignee.id}
                   type="button"
                   onClick={() => {
@@ -154,7 +181,10 @@ export function AssigneeManagementPage() {
                     setMessage(null);
                   }}
                 >
-                  <span>{assignee.name}</span>
+                  <span className="row-button-copy">
+                    <strong>{assignee.name}</strong>
+                    <span>{assignee.email || assignee.phone || "No contact details"}</span>
+                  </span>
                   <span className={assignee.is_active ? "chip success" : "chip warning"}>
                     {assignee.is_active ? "Active" : "Inactive"}
                   </span>
@@ -163,9 +193,12 @@ export function AssigneeManagementPage() {
             </div>
           </section>
           <section className="panel">
-            <div className="panel-header">
-              <h2>{selectedId ? "Edit Assignee" : "Create Assignee"}</h2>
-            </div>
+            <MobilePanelHeader
+              title={selectedId ? "Member Details" : "Create Member"}
+              meta={
+                <span className="chip panel-meta-chip">{selectedId ? "Editing" : "New"}</span>
+              }
+            />
             <div className="panel-body">
               {message ? <p className="status-text success">{message}</p> : null}
               <form className="form-grid" onSubmit={handleSubmit}>

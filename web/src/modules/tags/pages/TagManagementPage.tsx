@@ -1,6 +1,9 @@
 import { FormEvent, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 
+import { MobileManagementHeader } from "../../../shared/components/MobileManagementHeader";
+import { MobilePageBarAction } from "../../../shared/components/MobilePageBarAction";
+import { MobilePanelHeader } from "../../../shared/components/MobilePanelHeader";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from "../hooks/useTags";
 import type { Tag } from "../types/tagTypes";
@@ -20,7 +23,7 @@ function toForm(tag: Tag): TagForm {
 }
 
 export function TagManagementPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const tagsQuery = useTags(isAuthenticated);
   const createTag = useCreateTag();
   const updateTag = useUpdateTag();
@@ -80,6 +83,24 @@ export function TagManagementPage() {
         </nav>
       </aside>
       <div className="content">
+        <MobileManagementHeader
+          userName={user?.display_name || user?.username || "User"}
+          onLogout={logout}
+          title="Tags"
+          subtitle="Classify notes consistently."
+          action={
+            <MobilePageBarAction
+              icon="plus"
+              onClick={() => {
+                setSelectedId(null);
+                setForm(emptyForm);
+                setMessage(null);
+              }}
+            >
+              New
+            </MobilePageBarAction>
+          }
+        />
         <header className="topbar">
           <div>
             <h1>Tags</h1>
@@ -99,14 +120,18 @@ export function TagManagementPage() {
         </header>
         <div className="management-grid">
           <section className="panel">
-            <div className="panel-header">
-              <h2>List</h2>
-            </div>
+            <MobilePanelHeader
+              title="Tag Library"
+              meta={
+                <span className="chip panel-meta-chip">{(tagsQuery.data ?? []).length}</span>
+              }
+            />
             {tagsQuery.isLoading ? <p className="empty-state">Loading...</p> : null}
+            {!tagsQuery.isLoading && (tagsQuery.data ?? []).length === 0 ? <p className="empty-state">No tags yet. Create a tag to organize tasks.</p> : null}
             <div className="row-list">
               {(tagsQuery.data ?? []).map((tag) => (
                 <button
-                  className="row-button"
+                  className={selectedId === tag.id ? "row-button active" : "row-button"}
                   key={tag.id}
                   type="button"
                   onClick={() => {
@@ -115,16 +140,22 @@ export function TagManagementPage() {
                     setMessage(null);
                   }}
                 >
-                  <span>{tag.name}</span>
+                  <span className="row-button-copy">
+                    <strong>{tag.name}</strong>
+                    <span>Used for task grouping</span>
+                  </span>
                   <span className="chip">{tag.slug}</span>
                 </button>
               ))}
             </div>
           </section>
           <section className="panel">
-            <div className="panel-header">
-              <h2>{selectedId ? "Edit Tag" : "Create Tag"}</h2>
-            </div>
+            <MobilePanelHeader
+              title={selectedId ? "Tag Details" : "Create Tag"}
+              meta={
+                <span className="chip panel-meta-chip">{selectedId ? "Editing" : "New"}</span>
+              }
+            />
             <div className="panel-body">
               {message ? <p className="status-text success">{message}</p> : null}
               <form className="form-grid" onSubmit={handleSubmit}>

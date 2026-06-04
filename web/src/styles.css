@@ -65,6 +65,9 @@ a:hover {
   display: grid;
   grid-template-columns: 224px minmax(0, 1fr);
   min-height: 100vh;
+  background: linear-gradient(90deg, #ffffff 0 224px, #f6fbff 224px);
+  color: #111827;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .sidebar {
@@ -221,6 +224,14 @@ a:hover {
   letter-spacing: -0.01em;
 }
 
+.panel-header-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .panel-body {
   padding: 16px;
 }
@@ -266,6 +277,18 @@ a:hover {
   align-items: center;
   color: var(--muted);
   font-size: 12px;
+}
+
+.trash-note-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.trash-note-card-actions {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .chip {
@@ -443,6 +466,7 @@ a:hover {
 .row-button {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   width: 100%;
   min-height: 42px;
   border-radius: var(--radius);
@@ -454,6 +478,32 @@ a:hover {
 
 .row-button:hover {
   background: #f3f4f6;
+}
+
+.row-button.active {
+  background: #eaf3ff;
+  color: #0f172a;
+}
+
+.row-button-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.row-button-copy strong {
+  color: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.row-button-copy span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .login-page {
@@ -990,9 +1040,9 @@ a:hover {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   min-height: 100vh;
-  background: linear-gradient(90deg, #ffffff 0 280px, #f6fbff 280px);
+  background: linear-gradient(90deg, #ffffff 0 280px, #f7f7ff 280px);
   color: #111827;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .taskflow-sidebar {
@@ -1001,20 +1051,20 @@ a:hover {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  border-right: 1px solid #dce7ef;
+  border-right: 1px solid #d7ddeb;
   background: #ffffff;
-  padding: 44px 20px 24px;
+  padding: 38px 14px 24px;
 }
 
 .taskflow-brand {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 0 12px 52px;
-  color: #0f172a;
-  font-size: 28px;
+  margin: 0 16px 48px;
+  color: #1553d7;
+  font-size: 24px;
   font-weight: 900;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
 }
 
 .taskflow-logo {
@@ -1051,40 +1101,68 @@ a:hover {
 
 .taskflow-nav {
   display: grid;
-  gap: 16px;
+  gap: 6px;
 }
 
 .taskflow-nav-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  min-height: 54px;
+  gap: 16px;
+  min-height: 48px;
   border-radius: 8px;
   background: transparent;
-  color: #111827;
-  padding: 0 14px;
-  font-size: 23px;
-  font-weight: 500;
+  color: #1f2937;
+  padding: 0 18px;
+  font-size: 16px;
+  font-weight: 700;
   text-align: left;
 }
 
 .taskflow-nav-item.active,
 .taskflow-nav-item:hover {
-  background: #eef5ff;
-  color: #0f172a;
+  background: #0f6ff8;
+  color: #ffffff;
   text-decoration: none;
+  box-shadow: 0 10px 18px rgba(15, 111, 248, 0.2);
 }
 
 .tf-icon {
   position: relative;
   flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  color: #6b7280;
+  width: 22px;
+  height: 22px;
+  color: #24304a;
 }
 
-.taskflow-nav-item.active .tf-icon {
-  color: #1f7ae0;
+.taskflow-nav-item.active .tf-icon,
+.taskflow-nav-item:hover .tf-icon {
+  color: currentColor;
+}
+
+.taskflow-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  border-top: 1px solid #d7ddeb;
+  background: transparent;
+  padding: 20px 8px 0;
+}
+
+.taskflow-user-avatar {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 999px;
+  background: #dfe5f1;
+  color: #111827;
+  font-weight: 900;
+}
+
+.taskflow-user-caret {
+  color: #6b7280;
+  font-size: 18px;
 }
 
 .tf-icon-check::before {
@@ -1209,32 +1287,6 @@ a:hover {
   content: "";
 }
 
-.taskflow-user {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: auto;
-  border-top: 1px solid #d1d5db;
-  background: transparent;
-  padding: 20px 8px 0;
-}
-
-.taskflow-user-avatar {
-  display: grid;
-  width: 46px;
-  height: 46px;
-  place-items: center;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #bde7ef, #89c3d3);
-  color: #0f172a;
-  font-weight: 900;
-}
-
-.taskflow-user-caret {
-  color: #6b7280;
-  font-size: 18px;
-}
-
 .mobile-bottom-nav {
   display: none;
 }
@@ -1243,6 +1295,14 @@ a:hover {
   display: none;
 }
 
+  .taskflow-mobile-header-main {
+    display: contents;
+  }
+
+  .taskflow-mobile-toolbar {
+    display: none;
+  }
+
 .taskflow-main {
   padding: 25px 28px 40px 30px;
 }
@@ -1250,10 +1310,10 @@ a:hover {
 .taskflow-board {
   position: relative;
   min-height: 718px;
-  border: 1px solid #d6dde6;
+  border: 1px solid #c7d0e3;
   border-radius: 14px;
   background: #ffffff;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
   padding: 33px 33px 40px;
 }
 
@@ -1262,6 +1322,7 @@ a:hover {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
+  margin-bottom: 0;
 }
 
 .taskflow-search {
@@ -1270,10 +1331,11 @@ a:hover {
   gap: 14px;
   width: 414px;
   min-height: 47px;
-  border: 1px solid #cfd6de;
-  border-radius: 8px;
+  border: 1px solid #bcc6da;
+  border-radius: 999px;
   background: #ffffff;
-  padding: 0 16px;
+  padding: 0 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .taskflow-search input {
@@ -1289,63 +1351,57 @@ a:hover {
   color: #6b7280;
 }
 
-.taskflow-new-button {
-  min-width: 157px;
-  min-height: 47px;
-  border-radius: 8px;
-  background: #1f7ae0;
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 800;
-  box-shadow: 0 8px 18px rgba(31, 122, 224, 0.22);
-}
-
 .taskflow-tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   width: 350px;
   min-height: 44px;
   border: 1px solid #cfd6de;
-  border-radius: 8px;
+  border-radius: 999px;
   background: #ffffff;
-  padding: 3px;
+  padding: 2px;
 }
 
 .taskflow-tabs button {
-  border-radius: 7px;
+  border-radius: 999px;
   background: transparent;
-  color: #4b5563;
-  font-size: 18px;
+  color: #374151;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .taskflow-tabs button.active {
-  background: #edf2f8;
-  color: #111827;
+  border: 1px solid #1553d7;
+  background: #eef5ff;
+  color: #1553d7;
 }
 
 .project-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 18px;
+  gap: 10px 20px;
   margin: 24px 0;
   border-bottom: 1px solid #d1d5db;
-  padding: 0 0 8px 4px;
+  padding: 0 0 0 0;
 }
 
 .project-tabs button {
-  min-height: 41px;
+  min-height: 36px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 0;
   background: transparent;
   color: #111827;
-  padding: 0 10px;
-  font-size: 18px;
+  padding: 0 0 12px;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .project-tabs button.active {
-  border-color: #2b7aa1;
-  background: #f6fbff;
-  box-shadow: 0 2px 6px rgba(43, 122, 161, 0.18);
+  border-color: transparent;
+  border-bottom: 3px solid #1f6df0;
+  background: transparent;
+  color: #1553d7;
+  box-shadow: none;
 }
 
 .taskflow-floating-button {
@@ -1362,7 +1418,7 @@ a:hover {
   font-size: 70px;
   font-weight: 300;
   line-height: 1;
-  box-shadow: 0 16px 34px rgba(31, 122, 224, 0.32);
+  box-shadow: 0 18px 28px rgba(31, 122, 224, 0.28);
 }
 
 .taskflow-floating-button:hover {
@@ -1377,13 +1433,18 @@ a:hover {
   border-collapse: separate;
   border-spacing: 0;
   color: #111827;
-  font-size: 20px;
+  background: #ffffff;
+  font-size: 18px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
 }
 
 .taskflow-table th {
-  background: #f6fafc;
-  color: #111827;
+  background: #f1f3ff;
+  color: #2f3748;
+  font-size: 12px;
   font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   text-align: left;
 }
 
@@ -1405,8 +1466,8 @@ a:hover {
 .taskflow-table .task-name-button {
   background: transparent;
   color: #111827;
-  font-size: 20px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 800;
   padding: 0;
   text-align: left;
 }
@@ -1414,11 +1475,13 @@ a:hover {
 .priority-badge {
   display: inline-flex;
   align-items: center;
-  min-height: 33px;
-  border-radius: 8px;
+  min-height: 30px;
+  border-radius: 10px;
   padding: 0 14px;
-  font-size: 19px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .priority-badge.high {
@@ -1427,13 +1490,13 @@ a:hover {
 }
 
 .priority-badge.medium {
-  background: #ffedc2;
-  color: #b45309;
+  background: #e5e7eb;
+  color: #4b5563;
 }
 
 .priority-badge.low {
-  background: #d7f8df;
-  color: #047857;
+  background: #e4e8fb;
+  color: #334155;
 }
 
 .assignee-stack {
@@ -1448,14 +1511,14 @@ a:hover {
 
 .assignee-avatar {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  border: 2px solid #ffffff;
   border-radius: 999px;
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 700;
+  color: #24304a;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .assignee-avatar + .assignee-avatar {
@@ -1463,31 +1526,33 @@ a:hover {
 }
 
 .avatar-1 {
-  background: #d26457;
+  background: #dfe4ff;
 }
 
 .avatar-2 {
-  background: #62bdc6;
+  background: #e8ecff;
 }
 
 .avatar-3 {
-  background: #6571c7;
+  background: #c9d6ff;
 }
 
 .progress-cell {
-  display: grid;
-  gap: 8px;
-  justify-items: end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
 }
 
 .progress-track {
   display: block;
-  width: 164px;
-  height: 8px;
+  width: 130px;
+  height: 10px;
   border-radius: 999px;
-  background: #e5e7eb;
+  background: #dfe3f1;
   overflow: hidden;
 }
+
 
 .progress-fill {
   display: block;
@@ -1878,6 +1943,24 @@ a:hover {
 .priority-segment button.active {
   border-width: 2px;
   box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.08);
+  font-weight: 800;
+}
+
+.progress-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-editor input[type="range"] {
+  width: 100%;
+  accent-color: #2589e8;
+}
+
+.progress-editor strong {
+  color: #111827;
+  font-size: 14px;
   font-weight: 800;
 }
 
@@ -2664,6 +2747,244 @@ a:hover {
     background: #ffffff;
   }
 
+  .app-shell {
+    display: block;
+    min-height: 100vh;
+    background: #f7f7fb;
+    padding-bottom: 88px;
+  }
+
+  .app-shell .sidebar {
+    display: none;
+  }
+
+  .app-shell .content {
+    padding: 0 0 112px;
+  }
+
+  .app-shell .content > .taskflow-mobile-header {
+    display: flex;
+  }
+
+  .app-shell .content > .taskflow-mobile-header.taskflow-mobile-header-dashboard {
+    display: grid;
+  }
+
+  .app-shell .topbar {
+    display: none;
+  }
+
+  .app-shell .panel {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .app-shell .panel-header {
+    align-items: flex-start;
+    gap: 10px;
+    border-bottom: 0;
+    padding: 18px 0 10px;
+  }
+
+  .app-shell .panel-header h2 {
+    color: #111827;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .app-shell .panel-header-meta {
+    gap: 8px;
+  }
+
+  .app-shell .panel-body,
+  .app-shell .note-list,
+  .app-shell .row-list {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .app-shell .panel-body {
+    padding-top: 4px;
+    padding-bottom: 0;
+  }
+
+  .app-shell .management-grid {
+    margin: 14px 16px 0;
+    gap: 18px;
+  }
+
+  .app-shell .stack-top {
+    margin: 14px 16px 0;
+  }
+
+  .app-shell .row-list {
+    gap: 10px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .app-shell .row-button {
+    align-items: center;
+    min-height: 52px;
+    border: 1px solid #d8e0ea;
+    border-radius: 14px;
+    background: #f8fafc;
+    padding: 0 14px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .app-shell .row-button:hover {
+    background: #eef5ff;
+  }
+
+  .app-shell .row-button.active {
+    border-color: #9ec8f4;
+    background: linear-gradient(180deg, #eef6ff, #e7f0ff);
+    box-shadow: inset 0 0 0 1px rgba(31, 122, 224, 0.08);
+  }
+
+  .app-shell .row-button-copy strong {
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+
+  .app-shell .row-button-copy span {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .app-shell .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .app-shell .field label,
+  .app-shell .fieldset-title {
+    color: #111827;
+    font-size: 13px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .app-shell .field input,
+  .app-shell .field select,
+  .app-shell .field textarea {
+    min-height: 46px;
+    border-radius: 14px;
+    background: #f8fafc;
+    font-size: 15px;
+    padding: 11px 14px;
+  }
+
+  .app-shell .field textarea {
+    min-height: 120px;
+  }
+
+  .app-shell .button-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .app-shell .btn {
+    width: 100%;
+    min-height: 46px;
+    border-radius: 14px;
+    font-size: 15px;
+  }
+
+  .app-shell .btn-secondary {
+    background: #eef2f7;
+    border-color: #d6dde6;
+    color: #334155;
+  }
+
+  .app-shell .btn-danger {
+    background: #fff1f2;
+    color: #dc2626;
+  }
+
+  .app-shell .note-list {
+    gap: 12px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .app-shell .note-card {
+    border-left-width: 5px;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  }
+
+  .app-shell .note-card-meta {
+    gap: 6px 12px;
+    font-size: 13px;
+  }
+
+  .app-shell .trash-note-card {
+    gap: 12px;
+  }
+
+  .app-shell .trash-note-card-head {
+    align-items: center;
+  }
+
+  .app-shell .trash-note-card-meta {
+    display: grid;
+    gap: 6px;
+  }
+
+  .app-shell .trash-note-card-actions .btn {
+    width: auto;
+    min-width: 120px;
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .app-shell .chip {
+    min-height: 24px;
+    padding: 3px 10px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+
+  .app-shell .panel-meta-chip {
+    border-radius: 999px;
+    background: #e9f2ff;
+    color: #1f4f93;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .app-shell .panel-meta-chip.warning {
+    background: #fff4e5;
+    color: #b45309;
+  }
+
+  .app-shell .status-text {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .app-shell .empty-state {
+    border: 1px dashed #d8e0ea;
+    border-radius: 14px;
+    background: #f8fafc;
+    color: #64748b;
+    margin: 14px 16px;
+    padding: 18px 14px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
   .app-mobile-shell {
     min-height: 100vh;
     padding-bottom: 88px;
@@ -2754,15 +3075,20 @@ a:hover {
   }
 
   .taskflow-mobile-header {
-    display: grid;
-    gap: 12px;
+    display: flex;
+    align-items: center;
     position: sticky;
     top: 0;
     z-index: 12;
     min-height: 74px;
     border-bottom: 1px solid #e2e8f0;
     background: rgba(255, 255, 255, 0.96);
-    padding: 14px 16px;
+    padding: 14px 16px 8px;
+  }
+
+  .taskflow-mobile-header-dashboard {
+    display: grid;
+    gap: 12px;
   }
 
   .taskflow-mobile-brand {
@@ -2880,10 +3206,117 @@ a:hover {
     content: "";
   }
 
-  .taskflow-mobile-header-actions {
+  .taskflow-mobile-toolbar {
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 12px 16px 0;
+  }
+
+  .taskflow-mobile-header-dashboard .taskflow-mobile-toolbar {
+    padding: 0;
+  }
+
+  .taskflow-mobile-pagebar {
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+  }
+
+  .taskflow-mobile-pagebar-copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .taskflow-mobile-pagebar-copy strong {
+    color: #111827;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .taskflow-mobile-pagebar-copy span {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .taskflow-mobile-pagebar-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    gap: 6px;
+    min-height: 34px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #2689ef, #1975df);
+    color: #ffffff;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: 0 6px 14px rgba(31, 122, 224, 0.2);
+  }
+
+  .taskflow-mobile-pagebar-action.secondary {
+    background: #eef2f7;
+    color: #334155;
+    box-shadow: none;
+  }
+
+  .taskflow-mobile-pagebar-action-icon {
+    position: relative;
+    width: 12px;
+    height: 12px;
+    flex: 0 0 auto;
+  }
+
+  .taskflow-mobile-pagebar-action-icon.plus::before,
+  .taskflow-mobile-pagebar-action-icon.plus::after {
+    position: absolute;
+    left: 5px;
+    top: 0;
+    width: 2px;
+    height: 12px;
+    border-radius: 999px;
+    background: currentColor;
+    content: "";
+  }
+
+  .taskflow-mobile-pagebar-action-icon.plus::after {
+    left: 0;
+    top: 5px;
+    width: 12px;
+    height: 2px;
+  }
+
+  .taskflow-mobile-pagebar-action-icon.back::before,
+  .taskflow-mobile-pagebar-action-icon.back::after {
+    position: absolute;
+    content: "";
+  }
+
+  .taskflow-mobile-pagebar-action-icon.back::before {
+    left: 1px;
+    top: 5px;
+    width: 10px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+  }
+
+  .taskflow-mobile-pagebar-action-icon.back::after {
+    left: 1px;
+    top: 2px;
+    width: 6px;
+    height: 6px;
+    border-left: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
   }
 
   .taskflow-mobile-search-pill {
@@ -2929,7 +3362,7 @@ a:hover {
     border: 0;
     border-radius: 0;
     box-shadow: none;
-    padding: 14px 16px 112px;
+    padding: 4px 16px 112px;
   }
 
   .taskflow-board-header {
@@ -3011,12 +3444,17 @@ a:hover {
   }
 
   .project-tabs {
+    position: sticky;
+    top: 118px;
+    z-index: 11;
     flex-wrap: nowrap;
     overflow-x: auto;
     gap: 22px;
-    margin: 18px -16px 14px;
+    margin: 4px -16px 2px;
     border-bottom: 0;
-    padding: 0 16px 7px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(16px);
+    padding: 0 16px 3px;
     scrollbar-width: none;
   }
 
@@ -3161,15 +3599,31 @@ a:hover {
   }
 
   .taskflow-table .priority-badge {
-    width: 14px;
-    min-width: 14px;
-    height: 14px;
-    min-height: 14px;
+    width: 16px;
+    min-width: 16px;
+    height: 16px;
+    min-height: 16px;
     border-radius: 999px;
+    border: 2px solid #ffffff;
     padding: 0;
     font-size: 0;
     line-height: 0;
-    box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 0 0 5px rgba(15, 23, 42, 0.08);
+  }
+
+  .taskflow-table .priority-badge.high {
+    background: #fb7185;
+    box-shadow: 0 0 0 5px rgba(251, 113, 133, 0.22);
+  }
+
+  .taskflow-table .priority-badge.medium {
+    background: #fbbf24;
+    box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.22);
+  }
+
+  .taskflow-table .priority-badge.low {
+    background: #34d399;
+    box-shadow: 0 0 0 5px rgba(52, 211, 153, 0.22);
   }
 
   .taskflow-table .assignee-stack {

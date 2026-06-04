@@ -32,6 +32,10 @@ def _validate_subtask_status(value: str) -> SubtaskStatus:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="SUBTASK_INVALID_STATUS") from exc
 
 
+def _normalize_progress_percent(value: int) -> int:
+    return max(0, min(100, value))
+
+
 def _sync_completed_at(entity: Note | Subtask) -> None:
     is_done = entity.status.value == "DONE"
     entity.completed_at = datetime.now(timezone.utc) if is_done and entity.completed_at is None else entity.completed_at
@@ -63,6 +67,7 @@ def _to_response(db: Session, note: Note) -> NoteResponse:
         assignees=[EntityRef(id=str(item.id), name=item.name, is_active=item.is_active) for item in assignees],
         status=note.status.value,
         priority=note.priority.value,
+        progress_percent=note.progress_percent,
         deadline_at=note.deadline_at,
         completed_at=note.completed_at,
         tags=[TagRef(id=str(tag.id), name=tag.name, slug=tag.slug) for tag in tags],
@@ -190,6 +195,7 @@ def create_note(db: Session, current_user: User, payload: NotePayload) -> NoteRe
             content=payload.content,
             status=_validate_status(payload.status),
             priority=_validate_priority(payload.priority),
+            progress_percent=100 if payload.status == "DONE" else _normalize_progress_percent(payload.progress_percent),
             deadline_at=payload.deadline_at,
         )
         _sync_completed_at(note)
@@ -237,6 +243,7 @@ def update_note(db: Session, current_user: User, note_id: str, payload: NotePayl
         note.content = payload.content
         note.status = _validate_status(payload.status)
         note.priority = _validate_priority(payload.priority)
+        note.progress_percent = 100 if payload.status == "DONE" else _normalize_progress_percent(payload.progress_percent)
         note.deadline_at = payload.deadline_at
         _sync_completed_at(note)
         note.search_text = _build_search_text(

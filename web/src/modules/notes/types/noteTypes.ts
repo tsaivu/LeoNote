@@ -18,6 +18,7 @@ export type NoteItem = {
   }>;
   status: string;
   priority: string;
+  progress_percent: number;
   deadline_at: string | null;
   completed_at?: string | null;
   tags: Array<{
@@ -64,6 +65,7 @@ export type NotePayload = {
   assignee_ids: string[];
   status: string;
   priority: string;
+  progress_percent: number;
   deadline_at?: string | null;
   tag_ids: string[];
   subtasks: SubtaskPayload[];

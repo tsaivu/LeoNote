@@ -5,6 +5,7 @@ import { useAssignees, useCreateAssignee } from "../../assignees/hooks/useAssign
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCreateFolder, useFolders } from "../../folders/hooks/useFolders";
 import { formatVietnamDate } from "../../../shared/lib/datetime";
+import { MobileAppHeader } from "../../../shared/components/MobileAppHeader";
 import { isRichTextEmpty, sanitizeRichTextHtml } from "../../../shared/lib/richText";
 import { useCreateTag } from "../../tags/hooks/useTags";
 import { useTags } from "../../tags/hooks/useTags";
@@ -20,6 +21,7 @@ type NoteFormState = {
   assignee_ids: string[];
   status: string;
   priority: string;
+  progress_percent: number;
   deadline_at: string;
   tag_names: string[];
   subtasks: SubtaskPayload[];
@@ -33,6 +35,7 @@ const emptyForm: NoteFormState = {
   assignee_ids: [],
   status: "TODO",
   priority: "MEDIUM",
+  progress_percent: 0,
   deadline_at: "",
   tag_names: [],
   subtasks: [],
@@ -95,6 +98,7 @@ function fromNote(note: NoteItem): NoteFormState {
     assignee_ids: (note.assignees?.length ? note.assignees : [note.main_assignee]).map((assignee) => assignee.id),
     status: note.status,
     priority: note.priority,
+    progress_percent: note.progress_percent,
     deadline_at: toDateInputValue(note.deadline_at),
     tag_names: note.tags.map((tag) => tag.name),
     subtasks: note.subtasks.map((subtask) => ({
@@ -121,6 +125,7 @@ function toPayload(form: NoteFormState, tagIds: string[]): NotePayload {
     assignee_ids: assigneeIds,
     status: form.status,
     priority: form.priority,
+    progress_percent: form.progress_percent,
     tag_ids: tagIds,
     subtasks: form.subtasks.map((subtask, index) => ({
       ...subtask,
@@ -185,7 +190,7 @@ function getProgress(note: NoteItem) {
     return 100;
   }
   if (note.subtasks.length === 0) {
-    return note.status === "DOING" ? 45 : 10;
+    return Math.max(0, Math.min(100, note.progress_percent ?? 0));
   }
   const doneCount = note.subtasks.filter((subtask) => subtask.status === "DONE").length;
   return Math.round((doneCount / note.subtasks.length) * 100);
@@ -467,6 +472,23 @@ export function NotesWorkspacePage() {
       const saved = await updateNoteMutation.mutateAsync({
         noteId: detailNote.id,
         payload: buildPayloadFromNote(detailNote, { status }),
+      });
+      setDetailNoteId(saved.id);
+      setDetailNoteSnapshot(saved);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Update failed");
+      setMessageTone("danger");
+    }
+  }
+
+  async function updateDetailProgress(progressPercent: number) {
+    if (!detailNote || detailNote.subtasks.length > 0) {
+      return;
+    }
+    try {
+      const saved = await updateNoteMutation.mutateAsync({
+        noteId: detailNote.id,
+        payload: buildPayloadFromNote(detailNote, { progress_percent: progressPercent }),
       });
       setDetailNoteId(saved.id);
       setDetailNoteSnapshot(saved);
@@ -790,17 +812,9 @@ export function NotesWorkspacePage() {
       </aside>
 
       <div className="taskflow-main">
-        <header className="taskflow-mobile-header">
-          <div className="taskflow-mobile-brand">
-            <span className="taskflow-mobile-avatar">{user?.username?.slice(0, 1).toUpperCase() ?? "U"}</span>
-            <div className="taskflow-mobile-userblock">
-              <strong>{user?.display_name || user?.username || "User"}</strong>
-              <button className="taskflow-mobile-logout" type="button" onClick={logout} aria-label="Logout">
-                <span className="taskflow-mobile-logout-icon" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-          <div className="taskflow-mobile-header-actions">
+        <header className="taskflow-mobile-header taskflow-mobile-header-dashboard">
+          <MobileAppHeader userName={user?.display_name || user?.username || "User"} onLogout={logout} />
+          <section className="taskflow-mobile-toolbar">
             <label className="taskflow-mobile-search-pill" htmlFor="task-search-header">
               <span className="search-icon" aria-hidden="true" />
               <input
@@ -819,6 +833,21 @@ export function NotesWorkspacePage() {
             >
               <span className="taskflow-mobile-filter-icon" aria-hidden="true" />
             </button>
+          </section>
+          <div className="project-tabs" role="tablist" aria-label="Project filter">
+            <button className={activeFolderId === null ? "active" : ""} type="button" onClick={() => setActiveFolderId(null)}>
+              All Tasks
+            </button>
+            {(foldersQuery.data ?? []).map((folder) => (
+              <button
+                className={activeFolderId === folder.id ? "active" : ""}
+                key={folder.id}
+                type="button"
+                onClick={() => setActiveFolderId(folder.id)}
+              >
+                {folder.name}
+              </button>
+            ))}
           </div>
         </header>
         <section className="taskflow-board">
@@ -854,22 +883,6 @@ export function NotesWorkspacePage() {
                 ))}
               </div>
             </div>
-          </div>
-
-          <div className="project-tabs" role="tablist" aria-label="Project filter">
-            <button className={activeFolderId === null ? "active" : ""} type="button" onClick={() => setActiveFolderId(null)}>
-              All Tasks
-            </button>
-            {(foldersQuery.data ?? []).map((folder) => (
-              <button
-                className={activeFolderId === folder.id ? "active" : ""}
-                key={folder.id}
-                type="button"
-                onClick={() => setActiveFolderId(folder.id)}
-              >
-                {folder.name}
-              </button>
-            ))}
           </div>
 
           {notesQuery.isLoading ? <p className="empty-state">Loading notes...</p> : null}
@@ -939,7 +952,6 @@ export function NotesWorkspacePage() {
             +
           </button>
         </section>
-
         {detailNote ? (
           <div className="task-modal-backdrop task-detail-backdrop" role="presentation">
             <section className="task-detail-modal" role="dialog" aria-modal="true" aria-labelledby="task-detail-title">
@@ -968,7 +980,7 @@ export function NotesWorkspacePage() {
                 <div className="detail-divider" />
 
                 <div className="detail-subtask-header">
-                  <h3>Subtasks</h3>
+                  <h3>{detailNote.subtasks.length === 0 ? "Progress" : "Subtasks"}</h3>
                   <div className="detail-subtask-actions">
                     <span>{getProgress(detailNote)}% Complete</span>
                     {hasDetailSubtaskChanges() ? (
@@ -1068,6 +1080,25 @@ export function NotesWorkspacePage() {
                   <span>Priority</span>
                   <span className={priorityChipClass(detailNote.priority)}>{priorityLabel(detailNote.priority)}</span>
                 </div>
+
+                {detailNote.subtasks.length === 0 ? (
+                  <div className="detail-side-field">
+                    <label htmlFor="detail-progress-percent">Progress</label>
+                    <div className="progress-editor detail-progress-editor">
+                      <input
+                        id="detail-progress-percent"
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={detailNote.progress_percent}
+                        onChange={(event) => updateDetailProgress(Number(event.target.value) || 0)}
+                        disabled={updateNoteMutation.isPending}
+                      />
+                      <strong>{detailNote.progress_percent}%</strong>
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="detail-side-field">
                   <span>Assignees</span>
@@ -1181,6 +1212,26 @@ export function NotesWorkspacePage() {
                       ))}
                     </div>
                   </div>
+
+                  {form.subtasks.length === 0 ? (
+                    <div className="create-task-field">
+                      <label htmlFor="note-progress-percent">Progress</label>
+                      <div className="progress-editor">
+                        <input
+                          id="note-progress-percent"
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="5"
+                          value={form.progress_percent}
+                          onChange={(event) =>
+                            setForm((current) => ({ ...current, progress_percent: Number(event.target.value) || 0 }))
+                          }
+                        />
+                        <strong>{form.progress_percent}%</strong>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="create-task-field">
                     <label htmlFor="note-deadline">Due Date</label>

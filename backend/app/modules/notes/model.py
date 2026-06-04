@@ -122,6 +122,7 @@ class Note(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
         ),
         CheckConstraint("btrim(title) <> ''", name="chk_notes_title_not_blank"),
         CheckConstraint("search_text IS NOT NULL", name="chk_notes_search_text_not_null"),
+        CheckConstraint("progress_percent >= 0 AND progress_percent <= 100", name="chk_notes_progress_percent_range"),
         CheckConstraint(
             "(status = 'DONE' AND completed_at IS NOT NULL) OR (status <> 'DONE' AND completed_at IS NULL)",
             name="chk_notes_completed_at_consistency",
@@ -161,6 +162,7 @@ class Note(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
         nullable=False,
         default=NotePriority.MEDIUM,
     )
+    progress_percent: Mapped[int] = mapped_column(nullable=False, default=0)
     deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     search_text: Mapped[str] = mapped_column(Text, nullable=False, default="")
