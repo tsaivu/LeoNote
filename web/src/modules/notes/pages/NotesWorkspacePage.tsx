@@ -316,6 +316,14 @@ export function NotesWorkspacePage() {
   const [subtaskForm, setSubtaskForm] = useState<SubtaskFormState>(() => toSubtaskFormState(null));
 
   const notes = notesQuery.data ?? [];
+  const activeProjectName = activeFolderId
+    ? (foldersQuery.data ?? []).find((folder) => folder.id === activeFolderId)?.name ?? "Selected project"
+    : "All projects";
+  const visibleUrgentCount = notes.filter((note) => note.priority === "HIGH" || note.priority === "CRITICAL").length;
+  const averageProgress =
+    notes.length === 0
+      ? 0
+      : Math.round(notes.reduce((total, note) => total + getProgress(note), 0) / notes.length);
   const selectedNote = useMemo(
     () => notes.find((note) => note.id === selectedNoteId) ?? null,
     [notes, selectedNoteId],
@@ -812,6 +820,59 @@ export function NotesWorkspacePage() {
       </aside>
 
       <div className="taskflow-main">
+        <section className="taskflow-desktop-header" aria-label="Dashboard overview">
+          <div className="taskflow-desktop-header-main">
+            <div className="taskflow-page-title">
+              <span>Dashboard</span>
+              <h1>My Tasks</h1>
+              <p>
+                {activeProjectName} / {statusLabel(activeStatus)}
+              </p>
+            </div>
+            <label className="taskflow-search" htmlFor="task-search-desktop">
+              <span className="search-icon" aria-hidden="true" />
+              <input
+                id="task-search-desktop"
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search tasks..."
+              />
+            </label>
+            <button className="taskflow-new-task-button" type="button" onClick={startNewNote}>
+              New Task
+            </button>
+          </div>
+          <div className="taskflow-summary-grid" aria-label="Visible task summary">
+            <article className="taskflow-summary-card">
+              <span>Visible tasks</span>
+              <strong>{notes.length}</strong>
+            </article>
+            <article className="taskflow-summary-card">
+              <span>Avg progress</span>
+              <strong>{averageProgress}%</strong>
+            </article>
+            <article className="taskflow-summary-card">
+              <span>High priority</span>
+              <strong>{visibleUrgentCount}</strong>
+            </article>
+          </div>
+          <div className="project-tabs taskflow-desktop-project-tabs" role="tablist" aria-label="Project filter">
+            <button className={activeFolderId === null ? "active" : ""} type="button" onClick={() => setActiveFolderId(null)}>
+              All Tasks
+            </button>
+            {(foldersQuery.data ?? []).map((folder) => (
+              <button
+                className={activeFolderId === folder.id ? "active" : ""}
+                key={folder.id}
+                type="button"
+                onClick={() => setActiveFolderId(folder.id)}
+              >
+                {folder.name}
+              </button>
+            ))}
+          </div>
+        </section>
         <header className="taskflow-mobile-header taskflow-mobile-header-dashboard">
           <MobileAppHeader userName={user?.display_name || user?.username || "User"} onLogout={logout} />
           <section className="taskflow-mobile-toolbar">

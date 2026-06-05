@@ -1307,14 +1307,105 @@ a:hover {
   padding: 25px 28px 40px 30px;
 }
 
+.taskflow-desktop-header {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.taskflow-desktop-header-main {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(300px, 440px) auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.taskflow-page-title {
+  min-width: 0;
+}
+
+.taskflow-page-title span {
+  display: block;
+  margin-bottom: 5px;
+  color: #1553d7;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.taskflow-page-title h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 34px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.taskflow-page-title p {
+  margin: 7px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.taskflow-new-task-button {
+  min-height: 48px;
+  border-radius: 8px;
+  background: #0f6ff8;
+  color: #ffffff;
+  padding: 0 18px;
+  font-size: 15px;
+  font-weight: 900;
+  box-shadow: 0 12px 20px rgba(15, 111, 248, 0.2);
+  white-space: nowrap;
+}
+
+.taskflow-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.taskflow-summary-card {
+  display: grid;
+  gap: 8px;
+  min-height: 96px;
+  border: 1px solid #d7ddeb;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 16px 18px;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+}
+
+.taskflow-summary-card span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.taskflow-summary-card strong {
+  color: #0f172a;
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.taskflow-desktop-project-tabs {
+  margin: 0;
+  border-bottom-color: #d7ddeb;
+}
+
 .taskflow-board {
   position: relative;
-  min-height: 718px;
+  min-height: 560px;
   border: 1px solid #c7d0e3;
   border-radius: 14px;
   background: #ffffff;
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
-  padding: 33px 33px 40px;
+  padding: 24px 28px 96px;
 }
 
 .taskflow-board-header {
@@ -1407,15 +1498,15 @@ a:hover {
 .taskflow-floating-button {
   position: absolute;
   right: 28px;
-  bottom: 33px;
+  bottom: 28px;
   display: grid;
-  width: 120px;
-  height: 120px;
+  width: 72px;
+  height: 72px;
   place-items: center;
   border-radius: 999px;
   background: linear-gradient(135deg, #2d8cf0, #1268dd);
   color: #ffffff;
-  font-size: 70px;
+  font-size: 42px;
   font-weight: 300;
   line-height: 1;
   box-shadow: 0 18px 28px rgba(31, 122, 224, 0.28);
@@ -1434,7 +1525,7 @@ a:hover {
   border-spacing: 0;
   color: #111827;
   background: #ffffff;
-  font-size: 18px;
+  font-size: 15px;
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
 }
 
@@ -1451,7 +1542,7 @@ a:hover {
 .taskflow-table th,
 .taskflow-table td {
   border-bottom: 1px solid #d6dde6;
-  padding: 17px 20px;
+  padding: 15px 18px;
 }
 
 .taskflow-table tr:last-child td {
@@ -1466,7 +1557,7 @@ a:hover {
 .taskflow-table .task-name-button {
   background: transparent;
   color: #111827;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   padding: 0;
   text-align: left;
@@ -2698,6 +2789,22 @@ a:hover {
   .dashboard-topbar {
     margin: 0 -16px;
   }
+
+  .taskflow-desktop-header-main {
+    grid-template-columns: 1fr;
+  }
+
+  .taskflow-search {
+    width: 100%;
+  }
+
+  .taskflow-new-task-button {
+    width: 100%;
+  }
+
+  .taskflow-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -2729,6 +2836,10 @@ a:hover {
     overflow-x: auto;
   }
 
+  .taskflow-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
   .subtask-row {
     grid-template-columns: 1fr;
   }
@@ -2745,6 +2856,10 @@ a:hover {
 @media (max-width: 760px) {
   body {
     background: #ffffff;
+  }
+
+  .taskflow-desktop-header {
+    display: none;
   }
 
   .app-shell {
