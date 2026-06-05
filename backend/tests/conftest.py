@@ -26,6 +26,11 @@ os.environ.setdefault("JWT_REFRESH_TOKEN_EXPIRE_DAYS", "30")
 os.environ.setdefault("CORS_ORIGINS", "http://127.0.0.1:9110,http://localhost:9110")
 os.environ.setdefault("COOKIE_SECURE", "false")
 os.environ.setdefault("COOKIE_DOMAIN", "")
+os.environ.setdefault("SEED_USERNAME", "admin")
+os.environ.setdefault("SEED_PASSWORD", "123123")
+os.environ.setdefault("SEED_DISPLAY_NAME", "Admin")
+os.environ.setdefault("SEED_ENFORCE_SINGLE_USER", "false")
+os.environ.setdefault("ALLOW_REGISTRATION", "true")
 
 
 def _quote_identifier(value: str) -> str:
@@ -55,7 +60,7 @@ def _ensure_test_database_exists() -> None:
 _ensure_test_database_exists()
 
 from app.core.database import engine
-from app.main import seed_admin_user
+from app.seed import seed_configured_user
 
 
 def _run_migrations() -> None:
@@ -97,7 +102,11 @@ def migrated_database(request: pytest.FixtureRequest) -> None:
 @pytest.fixture(autouse=True)
 def reset_database(migrated_database: None) -> None:
     _truncate_database()
-    seed_admin_user()
+    seed_configured_user(
+        username="admin",
+        password="123123",
+        display_name="Admin",
+    )
     yield
 
 

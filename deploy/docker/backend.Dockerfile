@@ -15,5 +15,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/alembic.ini ./alembic.ini
 COPY backend/migrations ./migrations
 COPY backend/app ./app
+COPY docs/sql /docs/sql
 
 EXPOSE 9111

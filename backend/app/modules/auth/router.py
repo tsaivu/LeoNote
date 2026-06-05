@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -42,6 +42,8 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
 
 @router.post("/register", response_model=RegisterResponse, status_code=201)
 def register(payload: UserRegisterRequest, db: Session = Depends(get_db)) -> RegisterResponse:
+    if not settings.allow_registration:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Registration is disabled")
     return service.register_user(
         db,
         username=payload.username,

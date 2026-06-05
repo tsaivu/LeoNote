@@ -16,6 +16,9 @@ dist/
 !.env.development.example
 !.env.production.example
 !.env.test.example
+deploy/deploy.local.env
+deploy/leonote_deploy_key
+deploy/leonote_deploy_key.pub
 
 # Local MCP config may contain API keys
 .mcp.json

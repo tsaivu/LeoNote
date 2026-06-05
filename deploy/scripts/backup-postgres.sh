@@ -7,6 +7,7 @@ TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUTPUT_FILE="${BACKUP_DIR}/personal_notes_${TIMESTAMP}.sql.gz"
 
 mkdir -p "${BACKUP_DIR}"
+export PGPASSWORD="${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
 
 pg_dump \
   --host="${POSTGRES_HOST:-postgres}" \

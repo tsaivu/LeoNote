@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     cors_origins: str = Field(default="", alias="CORS_ORIGINS")
     cookie_secure: bool = Field(default=False, alias="COOKIE_SECURE")
     cookie_domain: str | None = Field(default=None, alias="COOKIE_DOMAIN")
+    seed_username: str | None = Field(default=None, alias="SEED_USERNAME")
+    seed_password: SecretStr | None = Field(default=None, alias="SEED_PASSWORD")
+    seed_display_name: str | None = Field(default=None, alias="SEED_DISPLAY_NAME")
+    seed_enforce_single_user: bool = Field(default=False, alias="SEED_ENFORCE_SINGLE_USER")
+    allow_registration: bool = Field(default=True, alias="ALLOW_REGISTRATION")
 
     model_config = SettingsConfigDict(
         env_file=".env",
