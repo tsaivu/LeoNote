@@ -1,10 +1,11 @@
 import { FormEvent, KeyboardEvent, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { useAssignees, useCreateAssignee } from "../../assignees/hooks/useAssignees";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCreateFolder, useFolders } from "../../folders/hooks/useFolders";
 import { formatVietnamDate } from "../../../shared/lib/datetime";
+import { DesktopSidebar } from "../../../shared/components/DesktopSidebar";
 import { MobileAppHeader } from "../../../shared/components/MobileAppHeader";
 import { isRichTextEmpty, sanitizeRichTextHtml } from "../../../shared/lib/richText";
 import { useCreateTag } from "../../tags/hooks/useTags";
@@ -413,6 +414,19 @@ export function NotesWorkspacePage() {
     );
   }, [isEditorOpen, location.pathname, location.search, navigate]);
 
+  useEffect(() => {
+    function handleNewTaskShortcut(event: globalThis.KeyboardEvent) {
+      if (event.key !== "F2" || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) {
+        return;
+      }
+      event.preventDefault();
+      startNewNote();
+    }
+
+    window.addEventListener("keydown", handleNewTaskShortcut);
+    return () => window.removeEventListener("keydown", handleNewTaskShortcut);
+  }, [assigneesQuery.data, foldersQuery.data, isDirty]);
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -790,46 +804,7 @@ export function NotesWorkspacePage() {
 
   return (
     <main className="taskflow-shell">
-      <aside className="taskflow-sidebar">
-        <div className="taskflow-brand">
-          <span className="taskflow-logo" />
-          <span>TaskFlow</span>
-        </div>
-        <nav className="taskflow-nav" aria-label="TaskFlow navigation">
-          <button className="taskflow-nav-item active" type="button" onClick={startNewNote}>
-            <span className="tf-icon tf-icon-check" />
-            My Tasks
-          </button>
-          <Link className="taskflow-nav-item" to="/settings/folders">
-            <span className="tf-icon tf-icon-folder" />
-            Projects
-          </Link>
-          <Link className="taskflow-nav-item" to="/">
-            <span className="tf-icon tf-icon-calendar" />
-            Calendar
-          </Link>
-          <Link className="taskflow-nav-item" to="/settings/assignees">
-            <span className="tf-icon tf-icon-team" />
-            Team
-          </Link>
-          <Link className="taskflow-nav-item" to="/trash">
-            <span className="tf-icon tf-icon-report" />
-            Reports
-          </Link>
-          <Link className="taskflow-nav-item" to="/settings/tags">
-            <span className="tf-icon tf-icon-settings" />
-            Settings
-          </Link>
-          <Link className="taskflow-nav-item" to="/settings/profile">
-            <span className="tf-icon tf-icon-profile" />
-            Profile
-          </Link>
-        </nav>
-        <button className="taskflow-user" type="button" onClick={logout} title={`Logout ${user?.username ?? ""}`}>
-          <span className="taskflow-user-avatar">{user?.username?.slice(0, 1).toUpperCase() ?? "U"}</span>
-          <span className="taskflow-user-caret">v</span>
-        </button>
-      </aside>
+      <DesktopSidebar active="tasks" userName={user?.username} onLogout={logout} />
 
       <div className="taskflow-main">
         <section className="taskflow-desktop-header" aria-label="Dashboard overview">

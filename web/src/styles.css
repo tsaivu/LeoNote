@@ -90,6 +90,7 @@ a:hover {
 }
 
 .brand-mark {
+  position: relative;
   display: grid;
   width: 34px;
   height: 34px;
@@ -98,6 +99,37 @@ a:hover {
   background: var(--primary);
   color: #fff;
   box-shadow: 0 8px 18px rgba(30, 64, 175, 0.28);
+}
+
+.brand-lion-mark {
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 58%, #fff7ed 0 32%, transparent 33%),
+    conic-gradient(from 12deg, #b45309, #f59e0b, #fbbf24, #b45309);
+}
+
+.brand-lion-mark::before {
+  position: absolute;
+  left: 11px;
+  top: 12px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #111827;
+  box-shadow: 8px 0 0 #111827;
+  content: "";
+}
+
+.brand-lion-mark::after {
+  position: absolute;
+  left: 13px;
+  top: 19px;
+  width: 8px;
+  height: 4px;
+  border-radius: 0 0 999px 999px;
+  border-bottom: 2px solid #92400e;
+  content: "";
 }
 
 .nav-stack {
@@ -1059,12 +1091,13 @@ a:hover {
 .taskflow-brand {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   margin: 0 16px 48px;
-  color: #1553d7;
-  font-size: 24px;
+  color: #0f172a;
+  font-size: 20px;
   font-weight: 900;
   letter-spacing: 0;
+  line-height: 1.15;
 }
 
 .taskflow-logo {
@@ -1072,31 +1105,36 @@ a:hover {
   display: inline-block;
   width: 38px;
   height: 38px;
+  flex: 0 0 38px;
+  overflow: hidden;
   border-radius: 999px;
-  background: #1f7ae0;
+  background:
+    radial-gradient(circle at 50% 58%, #fff7ed 0 33%, transparent 34%),
+    conic-gradient(from 12deg, #92400e, #f59e0b, #fbbf24, #b45309, #92400e);
+  box-shadow: 0 10px 20px rgba(180, 83, 9, 0.22);
 }
 
 .taskflow-logo::before {
   position: absolute;
-  left: 10px;
-  top: 12px;
-  width: 18px;
-  height: 10px;
-  border-left: 4px solid #ffffff;
-  border-top: 4px solid #ffffff;
+  left: 12px;
+  top: 13px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #111827;
+  box-shadow: 10px 0 0 #111827;
   content: "";
-  transform: skewY(-26deg) rotate(-10deg);
 }
 
 .taskflow-logo::after {
   position: absolute;
-  left: 18px;
-  top: 11px;
-  width: 12px;
-  height: 18px;
-  border-left: 4px solid #ffffff;
+  left: 15px;
+  top: 21px;
+  width: 8px;
+  height: 4px;
+  border-radius: 0 0 999px 999px;
+  border-bottom: 2px solid #92400e;
   content: "";
-  transform: rotate(54deg);
 }
 
 .taskflow-nav {
@@ -1335,6 +1373,11 @@ a:hover {
   display: grid;
   gap: 18px;
   margin-bottom: 20px;
+  border: 1px solid #d7ddeb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+  padding: 18px 20px;
 }
 
 .taskflow-desktop-header-main {
@@ -1376,12 +1419,12 @@ a:hover {
 .taskflow-new-task-button {
   min-height: 48px;
   border-radius: 8px;
-  background: #0f6ff8;
+  background: var(--primary);
   color: #ffffff;
   padding: 0 18px;
   font-size: 15px;
   font-weight: 900;
-  box-shadow: 0 12px 20px rgba(15, 111, 248, 0.2);
+  box-shadow: 0 12px 20px rgba(30, 64, 175, 0.2);
   white-space: nowrap;
 }
 

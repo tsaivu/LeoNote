@@ -29,9 +29,9 @@ export function DesktopSidebar({ active, userName, onLogout }: DesktopSidebarPro
     <aside className="taskflow-sidebar">
       <div className="taskflow-brand">
         <span className="taskflow-logo" />
-        <span>TaskFlow</span>
+        <span>Leo Task Management</span>
       </div>
-      <nav className="taskflow-nav" aria-label="TaskFlow navigation">
+      <nav className="taskflow-nav" aria-label="Leo Task Management navigation">
         {navItems.map((item) => (
           <Link className={active === item.key ? "taskflow-nav-item active" : "taskflow-nav-item"} key={item.key} to={item.to}>
             <span className={`tf-icon ${item.icon}`} />
