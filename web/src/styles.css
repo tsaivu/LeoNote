@@ -1563,6 +1563,145 @@ a:hover {
   text-align: left;
 }
 
+.management-shell {
+  background: linear-gradient(90deg, #ffffff 0 280px, #f7f7ff 280px);
+}
+
+.management-main {
+  display: grid;
+  align-content: start;
+  gap: 20px;
+}
+
+.management-shell .topbar {
+  position: static;
+  min-height: auto;
+  border: 1px solid #d7ddeb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+  padding: 18px 20px;
+}
+
+.management-shell .topbar h1 {
+  color: #0f172a;
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.management-shell .topbar p {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.management-shell .management-grid {
+  grid-template-columns: minmax(320px, 0.8fr) minmax(440px, 1.2fr);
+  gap: 20px;
+  margin-top: 0;
+}
+
+.management-shell .panel,
+.management-shell .note-card {
+  border-color: #d7ddeb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+}
+
+.management-shell .panel-header {
+  border-bottom-color: #eef2f7;
+  padding: 18px 20px;
+}
+
+.management-shell .panel-header h2 {
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.management-shell .panel-body {
+  padding: 20px;
+}
+
+.management-shell .row-list {
+  gap: 10px;
+  padding: 14px;
+}
+
+.management-shell .row-button {
+  align-items: center;
+  min-height: 58px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 0 14px;
+}
+
+.management-shell .row-button:hover,
+.management-shell .row-button.active {
+  border-color: #b8cff5;
+  background: #f8fbff;
+  box-shadow: 0 8px 18px rgba(15, 111, 248, 0.08);
+}
+
+.management-shell .row-button-copy strong {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.management-shell .row-button-copy span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.management-shell .chip {
+  border-radius: 8px;
+  letter-spacing: 0.04em;
+}
+
+.management-shell .form-grid {
+  gap: 16px;
+}
+
+.management-shell .field label {
+  color: #334155;
+  letter-spacing: 0.04em;
+}
+
+.management-shell .field input,
+.management-shell .field select,
+.management-shell .field textarea {
+  min-height: 44px;
+  border-color: #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.management-shell .button-row {
+  padding-top: 4px;
+}
+
+.management-shell .btn {
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+.management-shell .stack-top {
+  margin-top: 0;
+}
+
+.management-shell .note-list {
+  gap: 12px;
+  padding: 14px;
+}
+
+.management-shell .trash-note-card {
+  border-left-color: #f59e0b;
+}
+
 .priority-badge {
   display: inline-flex;
   align-items: center;
@@ -3470,6 +3609,228 @@ a:hover {
 
   .taskflow-main {
     padding: 0;
+  }
+
+  .management-main {
+    display: block;
+    padding: 0 0 112px;
+  }
+
+  .management-shell .topbar {
+    display: none;
+  }
+
+  .management-shell .management-grid,
+  .management-shell .stack-top {
+    margin: 14px 16px 0;
+  }
+
+  .management-shell .management-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .management-shell .panel {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .management-shell .panel-header {
+    align-items: flex-start;
+    gap: 10px;
+    border-bottom: 0;
+    padding: 18px 0 10px;
+  }
+
+  .management-shell .panel-header h2 {
+    color: #111827;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .management-shell .panel-header-meta {
+    gap: 8px;
+  }
+
+  .management-shell .panel-body,
+  .management-shell .row-list,
+  .management-shell .note-list {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .management-shell .panel-body {
+    padding-top: 4px;
+    padding-bottom: 0;
+  }
+
+  .management-shell .row-list {
+    gap: 10px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .management-shell .row-button {
+    align-items: center;
+    min-height: 52px;
+    border: 1px solid #d8e0ea;
+    border-radius: 14px;
+    background: #f8fafc;
+    padding: 0 14px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .management-shell .row-button:hover {
+    background: #eef5ff;
+  }
+
+  .management-shell .row-button.active {
+    border-color: #9ec8f4;
+    background: linear-gradient(180deg, #eef6ff, #e7f0ff);
+    box-shadow: inset 0 0 0 1px rgba(31, 122, 224, 0.08);
+  }
+
+  .management-shell .row-button-copy strong {
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+
+  .management-shell .row-button-copy span {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .management-shell .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .management-shell .field label,
+  .management-shell .fieldset-title {
+    color: #111827;
+    font-size: 13px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .management-shell .field input,
+  .management-shell .field select,
+  .management-shell .field textarea {
+    min-height: 46px;
+    border-radius: 14px;
+    background: #f8fafc;
+    font-size: 15px;
+    padding: 11px 14px;
+  }
+
+  .management-shell .field textarea {
+    min-height: 120px;
+  }
+
+  .management-shell .button-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .management-shell .btn {
+    width: 100%;
+    min-height: 46px;
+    border-radius: 14px;
+    font-size: 15px;
+  }
+
+  .management-shell .btn-secondary {
+    background: #eef2f7;
+    border-color: #d6dde6;
+    color: #334155;
+  }
+
+  .management-shell .btn-danger {
+    background: #fff1f2;
+    color: #dc2626;
+  }
+
+  .management-shell .note-list {
+    gap: 12px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .management-shell .note-card {
+    border-left-width: 5px;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  }
+
+  .management-shell .note-card-meta {
+    gap: 6px 12px;
+    font-size: 13px;
+  }
+
+  .management-shell .trash-note-card {
+    gap: 12px;
+  }
+
+  .management-shell .trash-note-card-head {
+    align-items: center;
+  }
+
+  .management-shell .trash-note-card-meta {
+    display: grid;
+    gap: 6px;
+  }
+
+  .management-shell .trash-note-card-actions .btn {
+    width: auto;
+    min-width: 120px;
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .management-shell .chip {
+    min-height: 24px;
+    padding: 3px 10px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+
+  .management-shell .panel-meta-chip {
+    border-radius: 999px;
+    background: #e9f2ff;
+    color: #1f4f93;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .management-shell .panel-meta-chip.warning {
+    background: #fff4e5;
+    color: #b45309;
+  }
+
+  .management-shell .status-text {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .management-shell .empty-state {
+    border: 1px dashed #d8e0ea;
+    border-radius: 14px;
+    background: #f8fafc;
+    color: #64748b;
+    margin: 14px 0;
+    padding: 18px 14px;
+    font-size: 14px;
+    font-weight: 600;
   }
 
   .taskflow-board {

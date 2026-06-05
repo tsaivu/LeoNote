@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
+import { DesktopSidebar } from "../../../shared/components/DesktopSidebar";
 import { MobileManagementHeader } from "../../../shared/components/MobileManagementHeader";
 import { MobilePageBarAction } from "../../../shared/components/MobilePageBarAction";
 import { MobilePanelHeader } from "../../../shared/components/MobilePanelHeader";
@@ -68,21 +69,9 @@ export function TagManagementPage() {
   }
 
   return (
-    <main className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark">L</span>
-          <span>LeoNote</span>
-        </div>
-        <nav className="nav-stack" aria-label="Main navigation">
-          <Link className="nav-item" to="/">Dashboard</Link>
-          <Link className="nav-item" to="/settings/folders">Folders</Link>
-          <Link className="nav-item active" to="/settings/tags">Tags</Link>
-          <Link className="nav-item" to="/settings/assignees">Team Members</Link>
-          <Link className="nav-item" to="/trash">Trash</Link>
-        </nav>
-      </aside>
-      <div className="content">
+    <main className="taskflow-shell management-shell">
+      <DesktopSidebar active="tags" userName={user?.username} onLogout={logout} />
+      <div className="taskflow-main management-main">
         <MobileManagementHeader
           userName={user?.display_name || user?.username || "User"}
           onLogout={logout}
