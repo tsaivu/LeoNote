@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Leo Task Management lion logo">
+  <rect width="512" height="512" rx="112" fill="#1e40af"/>
+  <circle cx="256" cy="256" r="176" fill="#b45309"/>
+  <path fill="#f59e0b" d="M256 86l42 46 61-9 18 59 55 28-20 58 31 52-48 39-2 62-61 11-34 52-56-27-56 27-34-52-61-11-2-62-48-39 31-52-20-58 55-28 18-59 61 9z"/>
+  <path fill="#fff7ed" d="M256 154c-78 0-132 58-132 134 0 87 58 150 132 150s132-63 132-150c0-76-54-134-132-134z"/>
+  <path fill="#f6ad55" d="M187 187l-51-35 9 76zm138 0l51-35-9 76z"/>
+  <circle cx="207" cy="274" r="17" fill="#111827"/>
+  <circle cx="305" cy="274" r="17" fill="#111827"/>
+  <path fill="#92400e" d="M256 300c17 0 31 12 31 25 0 14-14 25-31 25s-31-11-31-25c0-13 14-25 31-25z"/>
+  <path d="M256 346c-4 35-27 52-56 52m56-52c4 35 27 52 56 52" fill="none" stroke="#92400e" stroke-linecap="round" stroke-width="13"/>
+</svg>

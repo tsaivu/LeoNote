@@ -1,5 +1,7 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 
+import { PwaStatus } from "../shared/components/PwaStatus";
+
 export function App() {
   const location = useLocation();
   const showMobileNav = location.pathname !== "/login";
@@ -37,6 +39,7 @@ export function App() {
           </NavLink>
         </nav>
       ) : null}
+      <PwaStatus />
     </>
   );
 }

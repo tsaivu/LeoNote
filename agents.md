@@ -59,6 +59,11 @@ Nếu AI tự ý đề xuất hoặc sinh code liên quan đến các tính năn
 
 - **KHÔNG** viết code cho hệ thống Notification (Push, Email, SMS).
 - **KHÔNG** viết code cho cơ chế Auto-save phía Frontend. Mọi dữ liệu phải qua tương tác click nút **Lưu** rõ ràng.
-- **KHÔNG** tích hợp PWA, Offline Mode, Service Workers.
+- **CHO PHÉP** tích hợp PWA và Service Worker cho mục tiêu cài đặt ứng dụng, cache app shell và static assets.
+- PWA **KHÔNG ĐƯỢC** cache response chứa token, thông tin đăng nhập, dữ liệu người dùng hoặc các API mutation.
+- API nghiệp vụ và xác thực phải ưu tiên network; khi mất mạng phải hiển thị trạng thái offline rõ ràng, không trả dữ liệu cache cũ như dữ liệu mới.
+- **KHÔNG** triển khai Offline CRUD, Background Sync hoặc hàng đợi mutation trong phase hiện tại. Mọi thao tác tạo/cập nhật/xóa vẫn cần kết nối mạng và click nút **Lưu** rõ ràng.
+- **KHÔNG** dùng PWA để triển khai Push Notification; quy tắc cấm Notification (Push, Email, SMS) vẫn giữ nguyên.
+- Service Worker phải có chiến lược version/update rõ ràng và không được làm người dùng mắc kẹt ở bundle cũ sau khi deploy.
 - **KHÔNG** tích hợp WebSocket hoặc các giải pháp Real-time collaboration.
 - **KHÔNG** viết code phân quyền nhiều vai trò (Role-based access control) phức tạp; chỉ tồn tại khái niệm Chủ sở hữu dữ liệu (`user_id`).
