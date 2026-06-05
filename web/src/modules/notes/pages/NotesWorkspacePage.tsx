@@ -162,7 +162,10 @@ function statusLabel(status: string) {
 }
 
 function priorityChipClass(priority: string) {
-  if (priority === "HIGH" || priority === "CRITICAL") {
+  if (priority === "CRITICAL") {
+    return "priority-badge critical";
+  }
+  if (priority === "HIGH") {
     return "priority-badge high";
   }
   if (priority === "MEDIUM") {
@@ -173,9 +176,14 @@ function priorityChipClass(priority: string) {
 
 function priorityLabel(priority: string) {
   if (priority === "CRITICAL") {
-    return "High";
+    return "Urgent";
   }
   return priority.charAt(0) + priority.slice(1).toLowerCase();
+}
+
+function priorityFilterClass(value: string, activeValue: string) {
+  const variant = value === "ALL" ? "all" : value.toLowerCase();
+  return `priority-filter-pill ${variant}${activeValue === value ? " active" : ""}`;
 }
 
 function formatDeadline(value: string | null) {
@@ -938,7 +946,7 @@ export function NotesWorkspacePage() {
                   ["CRITICAL", "Urgent"],
                 ].map(([value, label]) => (
                   <button
-                    className={activePriorityFilter === value ? "active" : ""}
+                    className={priorityFilterClass(value, activePriorityFilter)}
                     key={value}
                     type="button"
                     onClick={() => setActivePriorityFilter(value as "ALL" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL")}
