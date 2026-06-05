@@ -1287,6 +1287,30 @@ a:hover {
   content: "";
 }
 
+.tf-icon-profile::before {
+  position: absolute;
+  left: 7px;
+  top: 2px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  content: "";
+}
+
+.tf-icon-profile::after {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: 2px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-top-left-radius: 999px;
+  border-top-right-radius: 999px;
+  border-bottom: 0;
+  content: "";
+}
+
 .mobile-bottom-nav {
   display: none;
 }
@@ -1700,6 +1724,15 @@ a:hover {
 
 .management-shell .trash-note-card {
   border-left-color: #f59e0b;
+}
+
+.profile-grid {
+  align-items: start;
+}
+
+.profile-grid input:disabled {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .priority-badge {
@@ -3251,7 +3284,7 @@ a:hover {
     bottom: 0;
     z-index: 30;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0;
     height: 78px;
     border-top: 1px solid #d7dde5;
@@ -3270,6 +3303,14 @@ a:hover {
     color: #6b7280;
     font-size: 11px;
     font-weight: 600;
+    text-decoration: none;
+  }
+
+  .taskflow-mobile-profile-link {
+    color: #111827;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
     text-decoration: none;
   }
 

@@ -812,6 +812,10 @@ export function NotesWorkspacePage() {
             <span className="tf-icon tf-icon-settings" />
             Settings
           </Link>
+          <Link className="taskflow-nav-item" to="/settings/profile">
+            <span className="tf-icon tf-icon-profile" />
+            Profile
+          </Link>
         </nav>
         <button className="taskflow-user" type="button" onClick={logout} title={`Logout ${user?.username ?? ""}`}>
           <span className="taskflow-user-avatar">{user?.username?.slice(0, 1).toUpperCase() ?? "U"}</span>

@@ -24,6 +24,7 @@ class LogoutRequest(BaseModel):
 class RegisterResponse(BaseModel):
     id: str
     username: str
+    email: str | None = None
     display_name: str | None = None
     timezone: str
 
@@ -31,5 +32,6 @@ class RegisterResponse(BaseModel):
 class AuthUserResponse(BaseModel):
     id: str
     username: str
+    email: str | None = None
     display_name: str | None = None
     timezone: str

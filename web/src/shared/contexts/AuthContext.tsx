@@ -9,6 +9,7 @@ type AuthContextValue = {
   token: string | null;
   refreshToken: string | null;
   user: AuthUser | null;
+  setAuthUser: (user: AuthUser) => void;
   setAuthSession: (session: LoginResponse) => void;
   logout: () => Promise<void>;
 };
@@ -18,6 +19,7 @@ export const AuthContext = createContext<AuthContextValue>({
   token: null,
   refreshToken: null,
   user: null,
+  setAuthUser: () => undefined,
   setAuthSession: () => undefined,
   logout: async () => undefined,
 });
@@ -49,6 +51,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     token,
     refreshToken,
     user,
+    setAuthUser: (nextUser) => {
+      localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+      setUser(nextUser);
+    },
     setAuthSession: (session) => {
       localStorage.setItem(ACCESS_TOKEN_KEY, session.access_token);
       localStorage.setItem(REFRESH_TOKEN_KEY, session.refresh_token);

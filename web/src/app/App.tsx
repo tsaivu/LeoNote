@@ -31,6 +31,10 @@ export function App() {
             <span className="tf-icon tf-icon-report" />
             Trash
           </NavLink>
+          <NavLink className={({ isActive }) => `mobile-bottom-nav-item${isActive ? " active" : ""}`} to="/settings/profile">
+            <span className="tf-icon tf-icon-profile" />
+            Profile
+          </NavLink>
         </nav>
       ) : null}
     </>

@@ -20,6 +20,30 @@ def get_user_by_id(db: Session, user_id: str) -> User | None:
     return db.execute(statement).scalar_one_or_none()
 
 
+def get_user_by_email(db: Session, email: str) -> User | None:
+    statement: Select[tuple[User]] = select(User).where(
+        User.email.ilike(email),
+        User.deleted_at.is_(None),
+    )
+    return db.execute(statement).scalar_one_or_none()
+
+
+def update_user_profile(
+    user: User,
+    *,
+    display_name: str | None,
+    email: str | None,
+) -> User:
+    user.display_name = display_name
+    user.email = email
+    return user
+
+
+def update_user_password(user: User, *, password_hash: str) -> User:
+    user.password_hash = password_hash
+    return user
+
+
 def create_user(
     db: Session,
     *,

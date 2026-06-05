@@ -7,6 +7,7 @@ import { FolderManagementPage } from "../modules/folders/pages/FolderManagementP
 import { NotesWorkspacePage } from "../modules/notes/pages/NotesWorkspacePage";
 import { TrashPage } from "../modules/notes/pages/TrashPage";
 import { TagManagementPage } from "../modules/tags/pages/TagManagementPage";
+import { ProfilePage } from "../modules/users/pages/ProfilePage";
 
 export const router = createBrowserRouter([
   {
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
       { path: "trash", element: <TrashPage /> },
       { path: "settings/assignees", element: <AssigneeManagementPage /> },
       { path: "settings/folders", element: <FolderManagementPage /> },
+      { path: "settings/profile", element: <ProfilePage /> },
       { path: "settings/tags", element: <TagManagementPage /> },
     ],
   },

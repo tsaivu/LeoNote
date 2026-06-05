@@ -6,6 +6,7 @@ export type LoginPayload = {
 export type AuthUser = {
   id: string;
   username: string;
+  email?: string | null;
   display_name?: string | null;
   timezone: string;
 };

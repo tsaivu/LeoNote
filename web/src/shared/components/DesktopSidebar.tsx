@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-export type DesktopSidebarSection = "tasks" | "folders" | "tags" | "assignees" | "trash";
+export type DesktopSidebarSection = "tasks" | "folders" | "tags" | "assignees" | "trash" | "profile";
 
 type DesktopSidebarProps = {
   active: DesktopSidebarSection;
@@ -19,6 +19,7 @@ const navItems: Array<{
   { key: "tags", label: "Tags", to: "/settings/tags", icon: "tf-icon-settings" },
   { key: "assignees", label: "Team", to: "/settings/assignees", icon: "tf-icon-team" },
   { key: "trash", label: "Reports", to: "/trash", icon: "tf-icon-report" },
+  { key: "profile", label: "Profile", to: "/settings/profile", icon: "tf-icon-profile" },
 ];
 
 export function DesktopSidebar({ active, userName, onLogout }: DesktopSidebarProps) {

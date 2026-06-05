@@ -57,6 +57,7 @@ def register_user(
     return RegisterResponse(
         id=str(user.id),
         username=user.username,
+        email=user.email,
         display_name=user.display_name,
         timezone=user.timezone,
     )
@@ -86,6 +87,7 @@ def login_user(db: Session, *, username: str, password: str) -> LoginResponse:
         user=AuthUserResponse(
             id=str(user.id),
             username=user.username,
+            email=user.email,
             display_name=user.display_name,
             timezone=user.timezone,
         ),
@@ -145,6 +147,7 @@ def build_current_user_response(user: User) -> AuthUserResponse:
     return AuthUserResponse(
         id=str(user.id),
         username=user.username,
+        email=user.email,
         display_name=user.display_name,
         timezone=user.timezone,
     )
