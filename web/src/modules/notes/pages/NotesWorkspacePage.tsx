@@ -1,4 +1,4 @@
-import { FormEvent, KeyboardEvent, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { FormEvent, KeyboardEvent, MouseEvent, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { useAssignees, useCreateAssignee } from "../../assignees/hooks/useAssignees";
@@ -738,6 +738,27 @@ export function NotesWorkspacePage() {
     }
   }
 
+  async function deleteNoteFromRow(noteId: string, event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    if (!window.confirm("Delete this task?")) {
+      return;
+    }
+    try {
+      await deleteNoteMutation.mutateAsync(noteId);
+      if (selectedNoteId === noteId) {
+        setSelectedNoteId(null);
+        setSelectedNote(null);
+      }
+      if (detailNoteId === noteId) {
+        setDetailNoteId(null);
+        setDetailNoteSnapshot(null);
+      }
+      setMessage("Deleted");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Delete failed");
+    }
+  }
+
   function openSubtaskEditor(index?: number) {
     const target = typeof index === "number" ? form.subtasks[index] : null;
     setEditingSubtaskIndex(typeof index === "number" ? index : null);
@@ -943,6 +964,7 @@ export function NotesWorkspacePage() {
                 <th>Assignee</th>
                 <th>Deadline</th>
                 <th>Progress</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -956,9 +978,11 @@ export function NotesWorkspacePage() {
                     onClick={() => openNoteDetail(note)}
                   >
                     <td>
-                      <button className="task-name-button" type="button" onClick={() => openNoteDetail(note)}>
-                        {note.title}
-                      </button>
+                      <div className="task-title-cell">
+                        <button className="task-name-button" type="button" onClick={() => openNoteDetail(note)}>
+                          {note.title}
+                        </button>
+                      </div>
                     </td>
                     <td>
                       <span className={priorityChipClass(note.priority)} aria-label={priorityLabel(note.priority)} title={priorityLabel(note.priority)}>
@@ -990,15 +1014,24 @@ export function NotesWorkspacePage() {
                         </span>
                       </div>
                     </td>
+                    <td>
+                      <button
+                        className="card-delete-button"
+                        type="button"
+                        onClick={(event) => deleteNoteFromRow(note.id, event)}
+                        disabled={deleteNoteMutation.isPending}
+                        aria-label={`Delete task ${note.title}`}
+                        title="Delete task"
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
           {notes.length === 0 ? <p className="empty-state">No active notes.</p> : null}
-          <button className="taskflow-floating-button" type="button" onClick={startNewNote} aria-label="New Task">
-            +
-          </button>
         </section>
         {detailNote ? (
           <div className="task-modal-backdrop task-detail-backdrop" role="presentation">

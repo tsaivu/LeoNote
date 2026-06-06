@@ -8,7 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: "prompt",
       injectRegister: null,
-      includeAssets: ["leo-lion.svg", "pwa-192x192.png", "pwa-512x512.png", "pwa-maskable-512x512.png"],
+      includeAssets: ["lion.png"],
       manifest: {
         name: "Leo Task Management",
         short_name: "Leo Tasks",
@@ -20,20 +20,14 @@ export default defineConfig({
         scope: "/",
         icons: [
           {
-            src: "/pwa-192x192.png",
-            sizes: "192x192",
+            src: "/lion.png",
+            sizes: "1024x1024",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: "/pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any",
-          },
-          {
-            src: "/pwa-maskable-512x512.png",
-            sizes: "512x512",
+            src: "/lion.png",
+            sizes: "1024x1024",
             type: "image/png",
             purpose: "maskable",
           },

@@ -92,6 +92,26 @@ export function AssigneeManagementPage() {
     }
   }
 
+  async function handleDeleteAssignee(assignee: Assignee) {
+    if (!window.confirm(`Delete or deactivate assignee "${assignee.name}"?`)) {
+      return;
+    }
+    try {
+      const saved = await deleteAssignee.mutateAsync(assignee.id);
+      if (selectedId === assignee.id) {
+        if (saved.deleted_at) {
+          setSelectedId(null);
+          setForm(emptyForm);
+        } else {
+          setForm(toForm(saved));
+        }
+      }
+      setMessage(saved.deleted_at ? "Deleted" : "Deactivated because this assignee is in use");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Delete failed");
+    }
+  }
+
   async function toggleActive() {
     if (!selectedAssignee) {
       return;
@@ -160,24 +180,38 @@ export function AssigneeManagementPage() {
             ) : null}
             <div className="row-list">
               {(assigneesQuery.data ?? []).map((assignee) => (
-                <button
+                <div
                   className={selectedId === assignee.id ? "row-button active" : "row-button"}
                   key={assignee.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedId(assignee.id);
-                    setForm(toForm(assignee));
-                    setMessage(null);
-                  }}
                 >
-                  <span className="row-button-copy">
-                    <strong>{assignee.name}</strong>
-                    <span>{assignee.email || assignee.phone || "No contact details"}</span>
-                  </span>
-                  <span className={assignee.is_active ? "chip success" : "chip warning"}>
-                    {assignee.is_active ? "Active" : "Inactive"}
-                  </span>
-                </button>
+                  <button
+                    className="row-button-main"
+                    type="button"
+                    onClick={() => {
+                      setSelectedId(assignee.id);
+                      setForm(toForm(assignee));
+                      setMessage(null);
+                    }}
+                  >
+                    <span className="row-button-copy">
+                      <strong>{assignee.name}</strong>
+                      <span>{assignee.email || assignee.phone || "No contact details"}</span>
+                    </span>
+                    <span className={assignee.is_active ? "chip success" : "chip warning"}>
+                      {assignee.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </button>
+                  <button
+                    className="row-delete-button"
+                    type="button"
+                    onClick={() => handleDeleteAssignee(assignee)}
+                    disabled={deleteAssignee.isPending}
+                    aria-label={`Delete assignee ${assignee.name}`}
+                    title="Delete assignee"
+                  >
+                    Delete
+                  </button>
+                </div>
               ))}
             </div>
           </section>

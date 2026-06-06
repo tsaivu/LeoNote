@@ -38,12 +38,10 @@ export function LoginPage() {
       <section className="login-card">
         <div className="login-hero">
           <div>
-            <div className="brand">
-              <span className="brand-mark brand-lion-mark" aria-hidden="true" />
+            <div className="brand login-lion-brand">
+              <img className="brand-mark brand-lion-mark" src="/lion.png" alt="" aria-hidden="true" />
               <span>Leo Task Management</span>
             </div>
-            <h1>Task clarity, without noise.</h1>
-            <p>Personal notes, deadlines, subtasks and internal assignees in one controlled workspace.</p>
           </div>
         </div>
         <form className="login-form" onSubmit={handleSubmit}>

@@ -68,6 +68,22 @@ export function TagManagementPage() {
     }
   }
 
+  async function handleDeleteTag(tag: Tag) {
+    if (!window.confirm(`Soft delete tag "${tag.name}" and remove it from notes?`)) {
+      return;
+    }
+    try {
+      await deleteTag.mutateAsync(tag.id);
+      if (selectedId === tag.id) {
+        setSelectedId(null);
+        setForm(emptyForm);
+      }
+      setMessage("Deleted");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Delete failed");
+    }
+  }
+
   return (
     <main className="taskflow-shell management-shell">
       <DesktopSidebar active="tags" userName={user?.username} onLogout={logout} />
@@ -119,22 +135,36 @@ export function TagManagementPage() {
             {!tagsQuery.isLoading && (tagsQuery.data ?? []).length === 0 ? <p className="empty-state">No tags yet. Create a tag to organize tasks.</p> : null}
             <div className="row-list">
               {(tagsQuery.data ?? []).map((tag) => (
-                <button
+                <div
                   className={selectedId === tag.id ? "row-button active" : "row-button"}
                   key={tag.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedId(tag.id);
-                    setForm(toForm(tag));
-                    setMessage(null);
-                  }}
                 >
-                  <span className="row-button-copy">
-                    <strong>{tag.name}</strong>
-                    <span>Used for task grouping</span>
-                  </span>
-                  <span className="chip">{tag.slug}</span>
-                </button>
+                  <button
+                    className="row-button-main"
+                    type="button"
+                    onClick={() => {
+                      setSelectedId(tag.id);
+                      setForm(toForm(tag));
+                      setMessage(null);
+                    }}
+                  >
+                    <span className="row-button-copy">
+                      <strong>{tag.name}</strong>
+                      <span>Used for task grouping</span>
+                    </span>
+                    <span className="chip">{tag.slug}</span>
+                  </button>
+                  <button
+                    className="row-delete-button"
+                    type="button"
+                    onClick={() => handleDeleteTag(tag)}
+                    disabled={deleteTag.isPending}
+                    aria-label={`Delete tag ${tag.name}`}
+                    title="Delete tag"
+                  >
+                    Delete
+                  </button>
+                </div>
               ))}
             </div>
           </section>

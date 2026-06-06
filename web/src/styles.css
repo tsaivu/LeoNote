@@ -90,46 +90,17 @@ a:hover {
 }
 
 .brand-mark {
-  position: relative;
-  display: grid;
+  display: block;
   width: 34px;
   height: 34px;
-  place-items: center;
   border-radius: var(--radius);
-  background: var(--primary);
-  color: #fff;
+  object-fit: cover;
   box-shadow: 0 8px 18px rgba(30, 64, 175, 0.28);
 }
 
 .brand-lion-mark {
   overflow: hidden;
   border-radius: 999px;
-  background:
-    radial-gradient(circle at 50% 58%, #fff7ed 0 32%, transparent 33%),
-    conic-gradient(from 12deg, #b45309, #f59e0b, #fbbf24, #b45309);
-}
-
-.brand-lion-mark::before {
-  position: absolute;
-  left: 11px;
-  top: 12px;
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: #111827;
-  box-shadow: 8px 0 0 #111827;
-  content: "";
-}
-
-.brand-lion-mark::after {
-  position: absolute;
-  left: 13px;
-  top: 19px;
-  width: 8px;
-  height: 4px;
-  border-radius: 0 0 999px 999px;
-  border-bottom: 2px solid #92400e;
-  content: "";
 }
 
 .nav-stack {
@@ -547,6 +518,22 @@ a:hover {
   text-align: left;
 }
 
+.row-button-main {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  min-height: 42px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+}
+
 .row-button:hover {
   background: #f3f4f6;
 }
@@ -577,6 +564,34 @@ a:hover {
   white-space: nowrap;
 }
 
+.row-delete-button,
+.card-delete-button {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border: 1px solid #fecdd3;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #be123c;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.row-delete-button:hover,
+.card-delete-button:hover {
+  border-color: #fb7185;
+  background: #ffe4e6;
+  color: #9f1239;
+}
+
+.task-title-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
 .login-page {
   display: grid;
   min-height: 100vh;
@@ -600,7 +615,7 @@ a:hover {
 
 .login-hero {
   display: grid;
-  align-content: end;
+  align-content: center;
   min-height: 480px;
   background:
     linear-gradient(180deg, rgba(0, 40, 142, 0.15), rgba(0, 40, 142, 0.8)),
@@ -609,15 +624,23 @@ a:hover {
   color: #fff;
 }
 
-.login-hero h1 {
-  margin: 0 0 8px;
-  font-size: 36px;
-  letter-spacing: -0.03em;
+.login-lion-brand {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  padding: 0;
+  text-align: center;
 }
 
-.login-hero p {
-  margin: 0;
-  color: #ebf1ff;
+.login-lion-brand .brand-lion-mark {
+  width: 168px;
+  height: 168px;
+  box-shadow: 0 26px 52px rgba(30, 64, 175, 0.35);
+}
+
+.login-lion-brand span {
+  font-size: 24px;
+  font-weight: 900;
 }
 
 .login-form {
@@ -1140,40 +1163,14 @@ a:hover {
 }
 
 .taskflow-logo {
-  position: relative;
-  display: inline-block;
+  display: block;
   width: 38px;
   height: 38px;
   flex: 0 0 38px;
   overflow: hidden;
   border-radius: 999px;
-  background:
-    radial-gradient(circle at 50% 58%, #fff7ed 0 33%, transparent 34%),
-    conic-gradient(from 12deg, #92400e, #f59e0b, #fbbf24, #b45309, #92400e);
+  object-fit: cover;
   box-shadow: 0 10px 20px rgba(180, 83, 9, 0.22);
-}
-
-.taskflow-logo::before {
-  position: absolute;
-  left: 12px;
-  top: 13px;
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: #111827;
-  box-shadow: 10px 0 0 #111827;
-  content: "";
-}
-
-.taskflow-logo::after {
-  position: absolute;
-  left: 15px;
-  top: 21px;
-  width: 8px;
-  height: 4px;
-  border-radius: 0 0 999px 999px;
-  border-bottom: 2px solid #92400e;
-  content: "";
 }
 
 .taskflow-nav {
@@ -1227,14 +1224,12 @@ a:hover {
 }
 
 .taskflow-user-avatar {
-  display: grid;
+  display: block;
   width: 46px;
   height: 46px;
-  place-items: center;
   border-radius: 999px;
-  background: #dfe5f1;
-  color: #111827;
-  font-weight: 900;
+  object-fit: cover;
+  box-shadow: 0 8px 18px rgba(30, 64, 175, 0.18);
 }
 
 .taskflow-user-caret {
@@ -1388,7 +1383,23 @@ a:hover {
   content: "";
 }
 
+.tf-icon-more::before {
+  position: absolute;
+  left: 2px;
+  top: 9px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 8px 0 0 currentColor, 16px 0 0 currentColor;
+  content: "";
+}
+
 .mobile-bottom-nav {
+  display: none;
+}
+
+.mobile-more-menu {
   display: none;
 }
 
@@ -1579,6 +1590,14 @@ a:hover {
   margin-bottom: 0;
 }
 
+.taskflow-filter-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+}
+
 .taskflow-search {
   display: flex;
   align-items: center;
@@ -1608,7 +1627,7 @@ a:hover {
 .taskflow-tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  width: 350px;
+  width: 100%;
   min-height: 44px;
   border: 1px solid #cfd6de;
   border-radius: 999px;
@@ -1634,6 +1653,8 @@ a:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+  min-height: 44px;
 }
 
 .priority-filter-pill {
@@ -1788,6 +1809,13 @@ a:hover {
 .taskflow-table td {
   border-bottom: 1px solid #d6dde6;
   padding: 15px 18px;
+}
+
+.taskflow-table th:last-child,
+.taskflow-table td:last-child {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .taskflow-table tr:last-child td {
@@ -3233,6 +3261,50 @@ a:hover {
   .taskflow-summary-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .taskflow-board {
+    overflow: hidden;
+    padding: 20px 20px 72px;
+  }
+
+  .taskflow-filter-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .taskflow-table {
+    table-layout: fixed;
+    font-size: 13px;
+  }
+
+  .taskflow-table th,
+  .taskflow-table td {
+    padding: 12px 10px;
+  }
+
+  .taskflow-table .task-name-button {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .taskflow-table .task-assignee-pill-list {
+    display: none;
+  }
+
+  .taskflow-table .progress-cell {
+    min-width: 0;
+  }
+
+  .taskflow-table .progress-track {
+    width: 82px;
+  }
+
+  .taskflow-table .card-delete-button {
+    padding: 0 9px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -3277,7 +3349,27 @@ a:hover {
   }
 
   .login-hero {
-    min-height: 220px;
+    min-height: 156px;
+    padding: 18px 24px;
+  }
+
+  .login-lion-brand {
+    gap: 10px;
+  }
+
+  .login-lion-brand .brand-lion-mark {
+    width: 96px;
+    height: 96px;
+    box-shadow: 0 16px 32px rgba(30, 64, 175, 0.28);
+  }
+
+  .login-lion-brand span {
+    font-size: 18px;
+  }
+
+  .login-form {
+    gap: 12px;
+    padding: 22px 24px 24px;
   }
 }
 
@@ -3386,6 +3478,10 @@ a:hover {
     padding: 0 14px;
     font-size: 15px;
     font-weight: 700;
+  }
+
+  .app-shell .row-button-main {
+    min-height: 50px;
   }
 
   .app-shell .row-button:hover {
@@ -3540,6 +3636,11 @@ a:hover {
     padding-bottom: 88px;
   }
 
+  .app-mobile-shell-tasks {
+    min-height: 100svh;
+    padding-bottom: 0;
+  }
+
   .mobile-bottom-nav {
     position: fixed;
     left: 0;
@@ -3547,7 +3648,7 @@ a:hover {
     bottom: 0;
     z-index: 30;
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0;
     height: 78px;
     border-top: 1px solid #d7dde5;
@@ -3567,6 +3668,12 @@ a:hover {
     font-size: 11px;
     font-weight: 600;
     text-decoration: none;
+  }
+
+  .mobile-bottom-nav button.mobile-bottom-nav-item {
+    border: 0;
+    background: transparent;
+    font-family: inherit;
   }
 
   .taskflow-mobile-profile-link {
@@ -3591,10 +3698,49 @@ a:hover {
     color: #1f7ae0;
   }
 
+  .mobile-more-menu {
+    position: fixed;
+    right: 12px;
+    bottom: 88px;
+    z-index: 29;
+    display: none;
+    min-width: 184px;
+    border: 1px solid #d7dde5;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.98);
+    padding: 8px;
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.16);
+  }
+
+  .mobile-more-menu.open {
+    display: grid;
+    gap: 4px;
+  }
+
+  .mobile-more-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 42px;
+    border-radius: 12px;
+    color: #334155;
+    padding: 0 12px;
+    font-size: 14px;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .mobile-more-menu-item.active,
+  .mobile-more-menu-item:hover {
+    background: #eef5ff;
+    color: #1f7ae0;
+  }
+
   .mobile-bottom-nav-item-create {
-    align-self: start;
-    min-height: 76px;
-    margin-top: -34px;
+    align-self: center;
+    place-items: center;
+    min-height: 62px;
+    margin-top: 0;
     background: transparent;
     color: #1f7ae0;
     box-shadow: none;
@@ -3609,14 +3755,14 @@ a:hover {
 
   .mobile-bottom-nav-create-icon {
     display: grid;
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     place-items: center;
     border-radius: 999px;
     background: linear-gradient(180deg, #2f7fd9, #1f72d0);
     color: #ffffff;
     box-shadow: 0 8px 20px rgba(31, 122, 224, 0.35);
-    font-size: 38px;
+    font-size: 32px;
     font-weight: 400;
     line-height: 1;
   }
@@ -3626,6 +3772,11 @@ a:hover {
     min-height: 100vh;
     background: #f7f7fb;
     padding-bottom: 88px;
+  }
+
+  .app-mobile-shell-tasks .taskflow-shell {
+    min-height: 100svh;
+    padding-bottom: 0;
   }
 
   .taskflow-sidebar {
@@ -3669,10 +3820,15 @@ a:hover {
     height: 28px;
     place-items: center;
     border-radius: 999px;
-    background: linear-gradient(135deg, #d9dee8, #bfc8d8);
-    color: #111827;
-    font-size: 12px;
-    font-weight: 800;
+    background: transparent;
+    overflow: hidden;
+    box-shadow: 0 5px 12px rgba(30, 64, 175, 0.14);
+  }
+
+  .taskflow-mobile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .taskflow-mobile-userblock {
@@ -3990,6 +4146,10 @@ a:hover {
     font-weight: 700;
   }
 
+  .management-shell .row-button-main {
+    min-height: 50px;
+  }
+
   .management-shell .row-button:hover {
     background: #eef5ff;
   }
@@ -4145,6 +4305,11 @@ a:hover {
     padding: 4px 16px 112px;
   }
 
+  .app-mobile-shell-tasks .taskflow-board {
+    min-height: auto;
+    padding-bottom: 88px;
+  }
+
   .taskflow-board-header {
     display: grid;
     gap: 12px;
@@ -4153,6 +4318,7 @@ a:hover {
   .taskflow-filter-panel {
     display: none;
     gap: 12px;
+    grid-template-columns: 1fr;
   }
 
   .taskflow-filter-panel.mobile-open {
@@ -4199,6 +4365,8 @@ a:hover {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    justify-content: center;
+    min-height: auto;
   }
 
   .taskflow-priority-pills button {
@@ -4271,11 +4439,11 @@ a:hover {
   .taskflow-table tr {
     position: relative;
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     grid-template-areas:
-      "title priority"
-      "assignees assignees"
-      "date progress";
+      "title title priority"
+      "assignees assignees assignees"
+      "date progress actions";
     gap: 10px 12px;
     min-height: 0;
     margin-bottom: 12px;
@@ -4328,6 +4496,10 @@ a:hover {
     content: "Progress";
   }
 
+  .taskflow-table td:nth-child(6)::before {
+    content: "";
+  }
+
   .taskflow-table .task-name-button {
     display: -webkit-box;
     overflow: hidden;
@@ -4336,6 +4508,10 @@ a:hover {
     line-height: 1.24;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+  }
+
+  .task-title-cell {
+    align-items: flex-start;
   }
 
   .taskflow-table td:nth-child(2) {
@@ -4366,6 +4542,20 @@ a:hover {
     grid-area: progress;
     align-self: end;
     min-width: 160px;
+  }
+
+  .taskflow-table td:nth-child(6) {
+    grid-area: actions;
+    align-self: end;
+    justify-self: end;
+    width: auto;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .taskflow-table td:nth-child(6) .card-delete-button {
+    min-height: 32px;
+    padding: 0 12px;
   }
 
   .taskflow-table .priority-badge {

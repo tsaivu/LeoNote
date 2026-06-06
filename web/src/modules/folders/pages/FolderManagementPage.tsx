@@ -109,6 +109,22 @@ export function FolderManagementPage() {
     }
   }
 
+  async function handleDeleteFolder(folder: Folder) {
+    if (folder.is_system || !window.confirm(`Soft delete folder "${folder.name}"? Active notes will move to Inbox.`)) {
+      return;
+    }
+    try {
+      await deleteFolder.mutateAsync(folder.id);
+      if (selectedId === folder.id) {
+        setSelectedId(null);
+        setForm(emptyForm);
+      }
+      setMessage("Deleted");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Delete failed");
+    }
+  }
+
   return (
     <main className="taskflow-shell management-shell">
       <DesktopSidebar active="folders" userName={user?.username} onLogout={logout} />
@@ -160,22 +176,38 @@ export function FolderManagementPage() {
             {!foldersQuery.isLoading && sortedFolders.length === 0 ? <p className="empty-state">No folders yet. Create your first folder.</p> : null}
             <div className="row-list">
               {sortedFolders.map((folder) => (
-                <button
+                <div
                   className={selectedId === folder.id ? "row-button active" : "row-button"}
                   key={folder.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedId(folder.id);
-                    setForm(toForm(folder));
-                    setMessage(null);
-                  }}
                 >
-                  <span className="row-button-copy" style={{ paddingLeft: `${folderDepth(folder, folders) * 16}px` }}>
-                    <strong>{folder.name}</strong>
-                    <span>{folderParentLabel(folder, folders)}</span>
-                  </span>
-                  {folder.is_system ? <span className="chip">System</span> : null}
-                </button>
+                  <button
+                    className="row-button-main"
+                    type="button"
+                    onClick={() => {
+                      setSelectedId(folder.id);
+                      setForm(toForm(folder));
+                      setMessage(null);
+                    }}
+                  >
+                    <span className="row-button-copy" style={{ paddingLeft: `${folderDepth(folder, folders) * 16}px` }}>
+                      <strong>{folder.name}</strong>
+                      <span>{folderParentLabel(folder, folders)}</span>
+                    </span>
+                    {folder.is_system ? <span className="chip">System</span> : null}
+                  </button>
+                  {!folder.is_system ? (
+                    <button
+                      className="row-delete-button"
+                      type="button"
+                      onClick={() => handleDeleteFolder(folder)}
+                      disabled={deleteFolder.isPending}
+                      aria-label={`Delete folder ${folder.name}`}
+                      title="Delete folder"
+                    >
+                      Delete
+                    </button>
+                  ) : null}
+                </div>
               ))}
             </div>
           </section>

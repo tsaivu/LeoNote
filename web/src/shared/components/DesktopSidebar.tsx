@@ -23,12 +23,10 @@ const navItems: Array<{
 ];
 
 export function DesktopSidebar({ active, userName, onLogout }: DesktopSidebarProps) {
-  const initial = userName?.trim().slice(0, 1).toUpperCase() || "U";
-
   return (
     <aside className="taskflow-sidebar">
       <div className="taskflow-brand">
-        <span className="taskflow-logo" />
+        <img className="taskflow-logo" src="/lion.png" alt="" aria-hidden="true" />
         <span>Leo Task Management</span>
       </div>
       <nav className="taskflow-nav" aria-label="Leo Task Management navigation">
@@ -40,7 +38,7 @@ export function DesktopSidebar({ active, userName, onLogout }: DesktopSidebarPro
         ))}
       </nav>
       <button className="taskflow-user" type="button" onClick={onLogout} title={`Logout ${userName ?? ""}`}>
-        <span className="taskflow-user-avatar">{initial}</span>
+        <img className="taskflow-user-avatar" src="/lion.png" alt="" aria-hidden="true" />
         <span className="taskflow-user-caret">v</span>
       </button>
     </aside>
